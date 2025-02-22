@@ -1,0 +1,50 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5433/streamify_dev
+    username: postgres
+    password: postgres-password
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+    database: POSTGRESQL
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+  mail:
+    host: localhost
+    port: 1025
+    username: streamify.com
+    password: streamify-password
+    properties:
+      smtp:
+        trust: "*"
+      auth: true
+      starttls:
+        enable: true
+      connectiontimeout: 5000
+      timeout: 3000
+      writetimeout: 5000
+
+twilio:
+  account_sid: ${TWILIO.ACCOUNT_SID}
+  auth_token: ${TWILIO.AUTHENTICATION_TOKEN}
+  phone_number: ${TWILIO.PHONE_NUMBER}
+
+application:
+  mailing:
+    app-mail: noreply@streamify.com
+    activation-url: http://localhost:5173/accounts/activate-account
+  Security:
+      jwt:
+        expiration: 259200000
+        secret-key: dEHmGxg1Pd1xvTNdD2UBLQpYhc4FncMG5D-6qmTY6re0ZVgdPF4RN1xN9NEm5NtE0VWkbafCNdRJTN0FWbVDcg==
+  file:
+    upload:
+      content-base-url:
+        post: ./post-assets
+        story: ./story-assets
+        temp: ./temp

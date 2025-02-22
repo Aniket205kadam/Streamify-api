@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  postgres:
+    container_name: postgres-streamify-db
+    image: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres-password
+      PGDATA: /var/lib/postgresql/data
+      POSTGRES_DB: streamify_dev
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    networks:
+      - streamify
+    restart: unless-stopped
+
+  pgadmin:
+    container_name: pgadmin
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: pgadmin4@pgadmin.org
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes:
+      - pgadmin:/var/lib/pgadmin
+    ports:
+      - "5050:80"
+    networks:
+      - streamify
+    restart: unless-stopped
+
+  mail-dev:
+    container_name: mail-dev-streamify
+    image: maildev/maildev
+    ports:
+      - "1080:1080"
+      - "1025:1025"
+    networks:
+      - streamify
+    restart: unless-stopped  # Added restart policy
+
+networks:
+  streamify:
+    driver: bridge
+
+volumes:
+  postgres:
+    driver: local
+  pgadmin:
+    driver: local
