@@ -16,6 +16,8 @@ public class PostMapper {
                 .isArchived(post.isArchived())
                 .location(post.getLocation())
                 .isReel(post.isReel())
+                .likeCount(post.getLikeCount())
+                .commentCount(post.getCommentCount())
                 .collaborators(
                         post
                                 .getCollaborators()

@@ -22,6 +22,8 @@ public class PostResponse {
     private String location;
     private boolean isReel;
     private Set<String> collaborators;
+    private int likeCount;
+    private int commentCount;
     private boolean hideLikesAndViewCounts;
     private boolean allowComments;
     private List<PostMedia> postMedia;

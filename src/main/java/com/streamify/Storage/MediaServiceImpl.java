@@ -1,16 +1,26 @@
 package com.streamify.Storage;
 
+import com.streamify.exception.OperationNotPermittedException;
 import com.streamify.ffmpeg.FfmpegService;
+import com.streamify.post.Post;
 import com.streamify.post.PostMedia;
+import com.streamify.post.PostRepository;
+import com.streamify.user.User;
+import com.streamify.user.UserRepository;
 import jakarta.annotation.PostConstruct;
+import jakarta.persistence.EntityNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -23,6 +33,8 @@ public class MediaServiceImpl implements MediaService {
     private final Logger LOGGER = LoggerFactory.getLogger(MediaServiceImpl.class);
 
     private final FfmpegService ffmpegService;
+    private final UserRepository userRepository;
+    private final PostRepository postRepository;
 
     @Value("${application.file.upload.content-base-url.post}")
     private String postBaseUrl;
@@ -30,14 +42,24 @@ public class MediaServiceImpl implements MediaService {
     @Value("${application.file.upload.content-base-url.story}")
     private String storyBaseUrl;
 
-    public MediaServiceImpl(FfmpegService ffmpegService) {
+    @Value("${application.file.upload.content-base-url.profile}")
+    private String profileBaseUrl;
+
+    @Value("${application.file.upload.content-base-url.thumbnail}")
+    private String thumbnailUrl;
+
+    public MediaServiceImpl(FfmpegService ffmpegService, UserRepository userRepository, PostRepository postRepository) {
         this.ffmpegService = ffmpegService;
+        this.userRepository = userRepository;
+        this.postRepository = postRepository;
     }
 
     @PostConstruct
     public void init() {
         postBaseUrl = postBaseUrl.replace("/", File.separator);
         storyBaseUrl = storyBaseUrl.replace("/", File.separator);
+        profileBaseUrl = profileBaseUrl.replace("/", File.separator);
+        thumbnailUrl = thumbnailUrl.replace("/", File.separator);
     }
 
     @Override
@@ -132,6 +154,67 @@ public class MediaServiceImpl implements MediaService {
         // delete the file content
         Files.delete(Paths.get(mediaUrl));
         return true;
+    }
+
+    @Override
+    public Resource getUserProfileImageByUsername(String username) throws MalformedURLException {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new EntityNotFoundException("User is not found with username: " + username));
+        String userProfileImage = user.getProfilePictureUrl();
+
+        if (!StringUtils.hasText(userProfileImage)) {
+           userProfileImage = Paths.get(profileBaseUrl, "common-avatar", "no-profile-image.png").toString();
+        }
+        Path imagePath = Paths.get(userProfileImage).normalize();
+        Resource resource = new UrlResource(imagePath.toUri());
+        if (resource.exists() && resource.isReadable()) {
+            return resource;
+        }
+        throw new OperationNotPermittedException("Image not found or not readable: " + userProfileImage);
+    }
+
+    // todo -> Return the image preview
+    @Override
+    public Resource getPostPreviewImage(String postId) throws IOException, InterruptedException {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new EntityNotFoundException("Post is not found with ID: " + postId));
+        PostMedia postMedia = post.getPostMedia().getFirst();
+        if (postMedia.getType().startsWith("video/")) {
+            Path targetPath = Paths.get(thumbnailUrl, postMedia.getId() + ".jpg");
+            if (Files.exists(targetPath)) {
+                System.out.println("This video path all ready exist");
+                Resource resource = new UrlResource(targetPath.normalize().toUri());
+                if (resource.exists() && resource.isReadable()) {
+                    return resource;
+                }
+            }
+            boolean status = new File(targetPath.toString()).mkdirs();
+            LOGGER.info(
+                    status
+                    ? "File is create in {} location"
+                    : "File is not create in {} location ",
+                    targetPath
+            );
+            Path thumbnailPath = ffmpegService
+                    .generateThumbnail(
+                            postMedia.getMediaUrl() + File.separator + "master.m3u8",
+                            targetPath.toString()
+                    );
+            Resource resource = new UrlResource(thumbnailPath.normalize().toUri());
+            if (resource.exists() && resource.isReadable()) {
+                return resource;
+            }
+        }
+        String postImage = postMedia.getMediaUrl();
+        if (!StringUtils.hasText(postImage)) {
+            throw new OperationNotPermittedException("PostMedia url is not stored in database!");
+        }
+        Path imagePath = Paths.get(postImage).normalize();
+        Resource resource = new UrlResource(imagePath.toUri());
+        if (resource.exists() && resource.isReadable()) {
+            return resource;
+        }
+        throw new OperationNotPermittedException("Image not found or not readable: " + postImage);
     }
 
     private boolean isValidStoryVideo(MultipartFile sourceFile) throws IOException, InterruptedException {

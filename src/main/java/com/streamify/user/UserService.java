@@ -25,7 +25,17 @@ public class UserService {
 
     public User findUserById(@NonNull String userId) {
         return userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("This user is not found with ID: " + userId));
+                .orElseThrow(
+                        () -> new EntityNotFoundException("This user is not found with ID: " + userId)
+                );
+    }
+
+    public UserResponse findUserByUsername(@NonNull String username) {
+        return userRepository.findByUsername(username)
+                .map(mapper::toUserResponse)
+                .orElseThrow(
+                        () -> new EntityNotFoundException("This user is not found with username: " + username)
+                );
     }
 
     @Transactional
@@ -47,7 +57,7 @@ public class UserService {
 
         return "Followed " + followUser.getUsername();
     }
-// change
+
     public List<UserDto> findUserFollowers(Authentication connectedUser) {
         User user = (User) connectedUser.getPrincipal();
         return user.getFollowers()

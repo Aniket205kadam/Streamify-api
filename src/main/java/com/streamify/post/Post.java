@@ -46,7 +46,8 @@ public class Post {
     private String location;
     private boolean isReel;
 
-    // todo -> likes impl
+    private int likeCount;
+    private int commentCount;
 
     @ManyToMany
     @JoinTable(

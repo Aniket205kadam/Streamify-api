@@ -6,6 +6,7 @@ import com.streamify.story.StoryReply;
 import com.streamify.story.StoryReplyResponse;
 import com.streamify.user.User;
 import com.streamify.user.UserDto;
+import com.streamify.user.UserResponse;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -49,6 +50,21 @@ public class Mapper {
                 .id(user.getId())
                 .username(user.getUsername())
                 .avtarUrl(null)
+                .build();
+    }
+
+    public UserResponse toUserResponse(User request) {
+        return UserResponse.builder()
+                .id(request.getId())
+                .username(request.getUsername())
+                .fullName(request.getFullName())
+                .bio(request.getBio())
+                .profilePictureUrl(request.getProfilePictureUrl())
+                .website(request.getWebsite())
+                .gender(request.getGender())
+                .followerCount(request.getFollowerCount())
+                .followingCount(request.getFollowingCount())
+                .postsCount(request.getPostsCount())
                 .build();
     }
 }

@@ -42,8 +42,6 @@ public class PostController {
             @PathVariable("post-id") String postId,
             Authentication connectedUser
     ) {
-        System.out.println("postId: " + postId);
-        System.out.println("request: " + request);
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(postService.uploadPostMetaData(request, postId, connectedUser));

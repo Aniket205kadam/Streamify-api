@@ -24,6 +24,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class FfmpegService {
@@ -281,5 +282,23 @@ public class FfmpegService {
         }
         InputStream inputStream = new FileInputStream(image);
         return new InputStreamResource(inputStream);
+    }
+
+    public Path generateThumbnail(String mediaUrl, String thumbnailPath) throws IOException, InterruptedException {
+        ProcessBuilder processBuilder = new ProcessBuilder(
+                "ffmpeg",
+                "-i", mediaUrl,
+                "-vf", "thumbnail",
+                "-frames:v", "1",
+                "-q:v", "2",
+                thumbnailPath
+        );
+        Process process = processBuilder.start();
+
+        if (!process.waitFor(10, TimeUnit.SECONDS)) {
+            process.destroy();
+            throw new OperationNotPermittedException("Failed to create the video thumbnail!");
+        }
+        return Paths.get(thumbnailPath);
     }
 }

@@ -244,6 +244,9 @@ public class PostService {
         );*/
         post.setHideLikesAndViewCounts(request.isHideLikesAndViewCounts());
         post.setAllowComments(request.isAllowComments());
+
+        post.getUser().setPostsCount(post.getUser().getPostsCount() + 1);
+        userRepository.save(post.getUser());
         postRepository.save(post);
         return postRepository.save(post).getId();
     }

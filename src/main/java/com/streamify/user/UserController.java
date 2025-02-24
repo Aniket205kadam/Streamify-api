@@ -6,6 +6,9 @@ import com.streamify.post.PostService;
 import com.streamify.story.StoryResponse;
 import com.streamify.story.StoryService;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import org.hibernate.validator.constraints.NotBlank;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -25,6 +28,18 @@ public class UserController {
         this.postService = postService;
         this.storyService = storyService;
         this.userService = userService;
+    }
+
+    @GetMapping("/username/{username}")
+    public ResponseEntity<UserResponse> getUserByUsername(
+            @PathVariable("username")
+            @NotNull
+            @NotEmpty
+            String username
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(userService.findUserByUsername(username));
     }
 
     @PatchMapping("/follow/{following-id}")
