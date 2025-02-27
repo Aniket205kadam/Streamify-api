@@ -21,6 +21,7 @@ import java.util.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@EqualsAndHashCode(exclude = {"followers", "following", "savedPost", "recentSearchedUser", "tokens"})
 @Entity
 @Table(name = "users")
 @EntityListeners(AuditingEntityListener.class)
@@ -87,6 +88,11 @@ public class User implements UserDetails, Principal {
 
     @JsonIgnore
     @ManyToMany(mappedBy = "followers", fetch = FetchType.EAGER)
+    /*@JoinTable(
+            name = "user_following",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "following_id")
+    )*/
     private Set<User> following = new HashSet<>();
 
     @JsonIgnore
@@ -97,6 +103,11 @@ public class User implements UserDetails, Principal {
             inverseJoinColumns = @JoinColumn(name = "post_id")
     )
     private Set<Post> savedPost = new LinkedHashSet<>();
+
+    @JsonIgnore
+    @Embedded
+    @ElementCollection(fetch = FetchType.EAGER)
+    private Set<UserDto> recentSearchedUser = new HashSet<>();
 
     @JsonIgnore
     @OneToMany(fetch = FetchType.EAGER, mappedBy = "user")

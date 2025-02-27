@@ -8,7 +8,6 @@ import com.streamify.story.StoryService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
-import org.hibernate.validator.constraints.NotBlank;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -42,6 +41,37 @@ public class UserController {
                 .body(userService.findUserByUsername(username));
     }
 
+    @GetMapping("/search")
+    public ResponseEntity<PageResponse<UserDto>> searchUsers(
+            @RequestParam("query") String query,
+            @RequestParam(name = "page", defaultValue = "0", required = false) int page,
+            @RequestParam(name = "size", defaultValue = "5", required = false) int size,
+            Authentication connectedUser
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(userService.searchUsers(query, page, size, connectedUser));
+    }
+
+    @PostMapping("/search/recent")
+    public ResponseEntity<?> addRecentSearch(
+            @RequestParam("username") String username,
+            Authentication connectedUser
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(userService.addRecentSearch(username, connectedUser));
+    }
+
+    @GetMapping("/search/recent")
+    public ResponseEntity<List<UserDto>> getRecentSearch(
+            Authentication connectedUser
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(userService.getRecentSearch(connectedUser));
+    }
+
     @PatchMapping("/follow/{following-id}")
     public ResponseEntity<String> followUser(
             @PathVariable("following-id") String followingId,
@@ -50,6 +80,16 @@ public class UserController {
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(userService.followUser(followingId, connectedUser));
+    }
+
+    @GetMapping("/isFollowing/{user-id}")
+    public ResponseEntity<Boolean> isFollowingUser(
+            @PathVariable("user-id") String userId,
+            Authentication connectedUser
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(userService.isFollowingUser(userId, connectedUser));
     }
 
     @GetMapping("/{user-id}")
@@ -121,6 +161,17 @@ public class UserController {
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(postService.getAllMyPost(page, size, connectedUser));
+    }
+
+    @GetMapping("/my-reels")
+    public ResponseEntity<PageResponse<PostResponse>> getAllMyReel(
+            @RequestParam(name = "page", defaultValue = "0", required = false) int page,
+            @RequestParam(name = "size", defaultValue = "10", required = false) int size,
+            Authentication connectedUser
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(postService.getAllMyReel(page, size, connectedUser));
     }
 
     @GetMapping("/{user-id}/stories")

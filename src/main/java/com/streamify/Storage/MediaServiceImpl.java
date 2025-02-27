@@ -181,20 +181,14 @@ public class MediaServiceImpl implements MediaService {
         PostMedia postMedia = post.getPostMedia().getFirst();
         if (postMedia.getType().startsWith("video/")) {
             Path targetPath = Paths.get(thumbnailUrl, postMedia.getId() + ".jpg");
+            Files.createDirectories(Paths.get(thumbnailUrl));
             if (Files.exists(targetPath)) {
                 System.out.println("This video path all ready exist");
-                Resource resource = new UrlResource(targetPath.normalize().toUri());
+                Resource resource = new UrlResource(targetPath.normalize(). toUri());
                 if (resource.exists() && resource.isReadable()) {
                     return resource;
                 }
             }
-            boolean status = new File(targetPath.toString()).mkdirs();
-            LOGGER.info(
-                    status
-                    ? "File is create in {} location"
-                    : "File is not create in {} location ",
-                    targetPath
-            );
             Path thumbnailPath = ffmpegService
                     .generateThumbnail(
                             postMedia.getMediaUrl() + File.separator + "master.m3u8",

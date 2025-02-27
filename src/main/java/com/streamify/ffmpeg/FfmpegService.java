@@ -285,17 +285,17 @@ public class FfmpegService {
     }
 
     public Path generateThumbnail(String mediaUrl, String thumbnailPath) throws IOException, InterruptedException {
+        // ffmpeg -i master.m3u8 -ss 00:00:10 -vframes 1 thumbnail.png
         ProcessBuilder processBuilder = new ProcessBuilder(
                 "ffmpeg",
                 "-i", mediaUrl,
-                "-vf", "thumbnail",
-                "-frames:v", "1",
-                "-q:v", "2",
+                "-ss", "00:00:05",
+                "-vframes", "1",
                 thumbnailPath
         );
         Process process = processBuilder.start();
 
-        if (!process.waitFor(10, TimeUnit.SECONDS)) {
+        if (!process.waitFor(30, TimeUnit.SECONDS)) {
             process.destroy();
             throw new OperationNotPermittedException("Failed to create the video thumbnail!");
         }

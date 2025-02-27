@@ -43,4 +43,12 @@ public interface PostRepository extends JpaRepository<Post, String> {
             WHERE post.id IN :savedPostIds
             """)
     Page<Post> findAllMySavedPosts(Pageable pageable, @Param("savedPostIds") List<String> savedPostIds);
+
+    @Query("""
+            SELECT post
+            FROM Post post
+            WHERE post.user.id = :userId
+            AND post.isReel = true
+            """)
+    Page<Post> findAllMyReels(Pageable pageable, @Param("userId") String userId);
 }

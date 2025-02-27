@@ -169,6 +169,24 @@ public class PostService {
                 .build();
     }
 
+    public PageResponse<PostResponse> getAllMyReel(int page, int size, Authentication connectedUser) {
+        User user = (User) connectedUser.getPrincipal();
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<Post> reels = postRepository.findAllMyReels(pageable, user.getId());
+        List<PostResponse> postResponses = reels.stream()
+                .map(postMapper::toPostResponse)
+                .toList();
+        return PageResponse.<PostResponse>builder()
+                .content(postResponses)
+                .number(reels.getNumber())
+                .size(reels.getSize())
+                .totalElements(reels.getTotalElements())
+                .totalPages(reels.getTotalPages())
+                .first(reels.isFirst())
+                .last(reels.isLast())
+                .build();
+    }
+
     public Boolean deletePostById(String postId, Authentication connectedUser) throws IOException {
         User user = (User) connectedUser.getPrincipal();
         Post post = findPostById(postId);

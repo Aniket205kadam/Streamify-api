@@ -53,6 +53,23 @@ public class Mapper {
                 .build();
     }
 
+    public UserDto toSearchedUser(User user, User connectedUser) {
+        return UserDto.builder()
+                .id(user.getId())
+                .fullName(user.getFullName())
+                .username(user.getUsername())
+                .avtarUrl(user.getProfilePictureUrl())
+                .followerCount(user.getFollowingCount())
+                .isFollowedByCurrentUser(connectedUser
+                        .getFollowing()
+                        .stream()
+                        .anyMatch(followUser ->
+                                followUser.getId().equals(user.getId())
+                        )
+                )
+                .build();
+    }
+
     public UserResponse toUserResponse(User request) {
         return UserResponse.builder()
                 .id(request.getId())
