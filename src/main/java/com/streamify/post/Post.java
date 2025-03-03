@@ -42,7 +42,7 @@ public class Post {
     private PostVisibility visibility;
 
     @Column(nullable = false)
-    private boolean isArchived;
+    private boolean isArchived; //todo -> remove after some versions
     private String location;
     private boolean isReel;
 
@@ -70,4 +70,7 @@ public class Post {
 
     @OneToMany(mappedBy = "post", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true) // todo -> make it LAZY
     private List<PostMedia> postMedia;
+
+    /*@OneToMany(mappedBy = "likedPosts", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<User> likes;*/
 }

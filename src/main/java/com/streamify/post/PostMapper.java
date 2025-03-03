@@ -1,5 +1,6 @@
 package com.streamify.post;
 
+import com.streamify.common.Mapper;
 import com.streamify.user.User;
 import org.springframework.stereotype.Service;
 
@@ -7,6 +8,12 @@ import java.util.stream.Collectors;
 
 @Service
 public class PostMapper {
+    private final Mapper mapper;
+
+    public PostMapper(Mapper mapper) {
+        this.mapper = mapper;
+    }
+
     public PostResponse toPostResponse(Post post) {
         return PostResponse.builder()
                 .id(post.getId())
@@ -25,6 +32,7 @@ public class PostMapper {
                                 .map(User::getUsername)
                                 .collect(Collectors.toSet())
                 )
+                .user(mapper.toUserDto(post.getUser()))
                 .hideLikesAndViewCounts(post.isHideLikesAndViewCounts())
                 .allowComments(post.isAllowComments())
                 .postMedia(post.getPostMedia())

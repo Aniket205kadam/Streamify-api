@@ -8,6 +8,8 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Repository;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -23,6 +25,14 @@ public interface UserRepository extends JpaRepository<User, String> {
     Boolean existsByEmail(String email);
 
     @Query("""
+            SELECT CASE WHEN COUNT(f) > 0 THEN TRUE ELSE FALSE END
+            FROM User user JOIN user.following f
+            WHERE user.id = :userId
+            AND f.username = :username
+            """)
+    boolean isFollowing(@Param("userId") String userId, @Param("username") String username);
+
+    @Query("""
             SELECT user
             FROM User user
             WHERE LOWER(user.fullName) LIKE LOWER(CONCAT('%', :query, '%'))
@@ -30,4 +40,28 @@ public interface UserRepository extends JpaRepository<User, String> {
             OR LOWER(user.email) LIKE LOWER(CONCAT('%', :query, '%'))
             """)
     Page<User> searchUsers(Pageable pageable, @Param("query") String query);
+
+    @Query("""
+            SELECT user
+            FROM User user
+            JOIN FETCH user.followers
+            WHERE user.id = :userId
+            """)
+    List<User> findFollowersWithDetails(@Param("userId") String userId);
+
+    @Query("""
+            SELECT user
+            FROM User user
+            JOIN FETCH user.following
+            WHERE user.id = :userId
+            """)
+    List<User> findFollowingsWithDetails(@Param("userId") String userId);
+
+    @Query("""
+            SELECT user
+            FROM User user
+            JOIN FETCH user.recentSearchedUser
+            WHERE user.id = :userId
+            """)
+    List<User> findRecentSearchesWithDetails(@Param("userId") String userId);
 }

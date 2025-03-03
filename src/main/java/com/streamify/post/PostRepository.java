@@ -1,5 +1,6 @@
 package com.streamify.post;
 
+import com.streamify.user.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -51,4 +52,11 @@ public interface PostRepository extends JpaRepository<Post, String> {
             AND post.isReel = true
             """)
     Page<Post> findAllMyReels(Pageable pageable, @Param("userId") String userId);
+
+    @Query("""
+            SELECT post
+            FROM Post post
+            WHERE :user MEMBER OF post.user.followers
+            """)
+    Page<Post> findAllFollowingsPosts(Pageable pageable, @Param("user") User user);
 }

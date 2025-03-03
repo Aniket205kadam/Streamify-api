@@ -2,6 +2,7 @@ package com.streamify.post;
 
 import com.streamify.comment.Comment;
 import com.streamify.user.User;
+import com.streamify.user.UserDto;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -18,6 +19,7 @@ public class PostResponse {
     private String caption;
     private LocalDateTime createdAt;
     private PostVisibility visibility;
+    private UserDto user;
     private boolean isArchived;
     private String location;
     private boolean isReel;

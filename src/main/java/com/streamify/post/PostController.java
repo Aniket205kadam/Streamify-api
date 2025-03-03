@@ -192,4 +192,15 @@ public class PostController {
                 .status(HttpStatus.OK)
                 .body(commentService.getAllCommentReplies(commentId, page, size));
     }
+
+    @GetMapping("/followings-posts")
+    public ResponseEntity<PageResponse<PostResponse>> followingsPost(
+            @RequestParam(name = "page", defaultValue = "0", required = false) int page,
+            @RequestParam(name = "size", defaultValue = "10", required = false) int size,
+            Authentication connectedUser
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(postService.findFollowingsPosts(connectedUser, page, size));
+    }
 }

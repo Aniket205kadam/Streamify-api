@@ -38,4 +38,13 @@ public class MediaController {
                 .body(mediaService.getPostPreviewImage(postId));
     }
 
+    @GetMapping("/post/{post-media-id}")
+    public  ResponseEntity<Resource> getPostContent(
+            @PathVariable("post-media-id") String postMediaId
+    ) throws MalformedURLException {
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(mediaService.getPostContent(postMediaId));
+    }
+
 }

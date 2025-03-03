@@ -100,7 +100,7 @@ public class FfmpegService {
                 .orElseThrow(() ->
                         new EntityNotFoundException("PostMedia is not found with URL: " + fileUrl.toString())
                 );
-        postMedia.setMediaUrl(targetPath.toString());
+        postMedia.setMediaUrl(targetPath.toString() + File.separator + "master.m3u8"); //todo -> if some problem
         postMediaRepository.save(postMedia);
 
         // remove the temp post video from the location

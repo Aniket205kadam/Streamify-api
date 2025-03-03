@@ -303,4 +303,26 @@ public class PostService {
                 .postMedia(updatedPost.getPostMedia())
                 .build();
     }
+
+    public PageResponse<PostResponse> findFollowingsPosts(Authentication connectedUser, int page, int size) {
+        Objects.requireNonNull(connectedUser, "Connected user is required");
+
+        User user = (User) connectedUser.getPrincipal();
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<Post> posts = postRepository.findAllFollowingsPosts(pageable, user);
+
+        List<PostResponse> postResponses = posts
+                .stream()
+                .map(postMapper::toPostResponse)
+                .toList();
+        return PageResponse.<PostResponse>builder()
+                .content(postResponses)
+                .number(posts.getNumber())
+                .totalPages(posts.getTotalPages())
+                .totalElements(posts.getTotalElements())
+                .size(posts.getSize())
+                .first(posts.isFirst())
+                .last(posts.isLast())
+                .build();
+    }
 }

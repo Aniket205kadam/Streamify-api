@@ -4,17 +4,16 @@ import com.streamify.common.Mapper;
 import com.streamify.common.PageResponse;
 import com.streamify.story.StoryRepository;
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.lang.NonNull;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
+import java.util.Objects;
 
 @Service
 public class UserService {
@@ -64,28 +63,36 @@ public class UserService {
         return "Followed " + followUser.getUsername();
     }
 
+    @Transactional
     public List<UserDto> findUserFollowers(Authentication connectedUser) {
+        Objects.requireNonNull(connectedUser, "Connected user must not be null");
         User user = (User) connectedUser.getPrincipal();
-        return user.getFollowers()
+        return userRepository.findFollowersWithDetails(user.getId())
                 .stream()
                 .map(mapper::toUserDto)
                 .toList();
     }
 
+    @Transactional
     public List<UserDto> findUserFollowings(Authentication connectedUser) {
+        Objects.requireNonNull(connectedUser, "Connected user must not be null");
         User user = (User) connectedUser.getPrincipal();
-        return user.getFollowing()
+        return userRepository.findFollowingsWithDetails(user.getId())
                 .stream()
                 .map(mapper::toUserDto)
                 .toList();
     }
 
     public boolean connectedUserHasStory(Authentication connectedUser) {
+        Objects.requireNonNull(connectedUser, "Connected user must not be null");
         User user = (User) connectedUser.getPrincipal();
         return storyRepository.isValidStoryExist(user.getId());
     }
 
+    @Transactional
     public PageResponse<UserDto> searchUsers(String query, int page, int size, Authentication connectedUser) {
+        Objects.requireNonNull(connectedUser, "Connected user must not be null");
+
         User currentUser = (User) connectedUser.getPrincipal();
         Pageable pageable = PageRequest.of(page, size);
         Page<User> users = userRepository.searchUsers(pageable, query);
@@ -103,23 +110,32 @@ public class UserService {
                 .build();
     }
 
+    @Transactional
     public String addRecentSearch(String username, Authentication connectedUser) {
+        Objects.requireNonNull(username, "Username must not be null");
+        Objects.requireNonNull(connectedUser, "Connected user must not be null");
+
         User user = (User) connectedUser.getPrincipal();
         User searchedUser = userRepository.findByUsername(username)
                 .orElseThrow(() ->
                         new EntityNotFoundException("Username is not found with username: " + username)
                 );
-        user.getRecentSearchedUser().add(mapper.toSearchedUser(searchedUser, user));
-        /*prevRecentSearched.add(mapper.toSearchedUser(searchedUser, user));
-        user.setRecentSearchedUser(prevRecentSearched);*/
-        return userRepository.save(user).getId();
+        /*user.getRecentSearchedUser().add(mapper.toSearchedUser(searchedUser, user));*/
+        /*return userRepository.save(user).getId();*/
+/*
+        userRepository.findRecentSearchesWithDetails(user.getId()).add(mapper.toSearchedUser(searchedUser, user))
+*/
+        return null;
     }
 
+    @Transactional
     public List<UserDto> getRecentSearch(Authentication connectedUser) {
+        Objects.requireNonNull(connectedUser, "Connected user must not be null");
+
         User user = (User) connectedUser.getPrincipal();
-        return findUserById(user.getId())
-                .getRecentSearchedUser()
+        return userRepository.findRecentSearchesWithDetails(user.getId())
                 .stream()
+                .map(mapper::toUserDto)
                 .distinct()
                 .toList();
     }

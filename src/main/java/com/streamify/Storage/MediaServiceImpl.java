@@ -4,6 +4,7 @@ import com.streamify.exception.OperationNotPermittedException;
 import com.streamify.ffmpeg.FfmpegService;
 import com.streamify.post.Post;
 import com.streamify.post.PostMedia;
+import com.streamify.post.PostMediaRepository;
 import com.streamify.post.PostRepository;
 import com.streamify.user.User;
 import com.streamify.user.UserRepository;
@@ -35,6 +36,7 @@ public class MediaServiceImpl implements MediaService {
     private final FfmpegService ffmpegService;
     private final UserRepository userRepository;
     private final PostRepository postRepository;
+    private final PostMediaRepository postMediaRepository;
 
     @Value("${application.file.upload.content-base-url.post}")
     private String postBaseUrl;
@@ -48,10 +50,11 @@ public class MediaServiceImpl implements MediaService {
     @Value("${application.file.upload.content-base-url.thumbnail}")
     private String thumbnailUrl;
 
-    public MediaServiceImpl(FfmpegService ffmpegService, UserRepository userRepository, PostRepository postRepository) {
+    public MediaServiceImpl(FfmpegService ffmpegService, UserRepository userRepository, PostRepository postRepository, PostMediaRepository postMediaRepository) {
         this.ffmpegService = ffmpegService;
         this.userRepository = userRepository;
         this.postRepository = postRepository;
+        this.postMediaRepository = postMediaRepository;
     }
 
     @PostConstruct
@@ -191,7 +194,7 @@ public class MediaServiceImpl implements MediaService {
             }
             Path thumbnailPath = ffmpegService
                     .generateThumbnail(
-                            postMedia.getMediaUrl() + File.separator + "master.m3u8",
+                            postMedia.getMediaUrl(),
                             targetPath.toString()
                     );
             Resource resource = new UrlResource(thumbnailPath.normalize().toUri());
@@ -209,6 +212,37 @@ public class MediaServiceImpl implements MediaService {
             return resource;
         }
         throw new OperationNotPermittedException("Image not found or not readable: " + postImage);
+    }
+
+    //@Override
+    /*public Resource getPostContent(String postMediaId) throws MalformedURLException {
+        PostMedia postMedia = postMediaRepository.findById(postMediaId)
+                .orElseThrow(() -> new EntityNotFoundException("PostMedia is not found with id: " + postMediaId));
+        Path mediaPath;
+        if (postMedia.getType().startsWith("image/")) {
+            mediaPath = Paths.get(postMedia.getMediaUrl()).toAbsolutePath().normalize();
+        } else {
+            mediaPath = Paths.get(postMedia.getMediaUrl() + File.separator + "master.m3u8").toAbsolutePath().normalize();
+        }
+
+        if (!Files.exists(mediaPath) || !Files.isReadable(mediaPath)) {
+            throw new OperationNotPermittedException("Media file not found or not readable: " + mediaPath);
+        }
+        return new UrlResource(mediaPath.toUri());
+    }*/
+
+    @Override
+    public Resource getPostContent(String postMediaId) throws MalformedURLException {
+        PostMedia postMedia = postMediaRepository.findById(postMediaId)
+                .orElseThrow(() -> new EntityNotFoundException("PostMedia is not found with id: " + postMediaId));
+
+        Path mediaPath = Paths.get(postMedia.getMediaUrl()).toAbsolutePath().normalize();
+
+        if (!Files.exists(mediaPath) || !Files.isReadable(mediaPath) || Files.isDirectory(mediaPath)) {
+            throw new OperationNotPermittedException("Media file not found, not readable, or is a directory: " + mediaPath);
+        }
+
+        return new UrlResource(mediaPath.toUri());
     }
 
     private boolean isValidStoryVideo(MultipartFile sourceFile) throws IOException, InterruptedException {

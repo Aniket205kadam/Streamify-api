@@ -77,6 +77,11 @@ public class User implements UserDetails, Principal {
     private String languagePreference;
 
     // relations
+    /*@JsonIgnore
+    @ManyToOne
+    @JoinColumn(name = "post_id", nullable = false)
+    private List<Post> likedPosts;*/
+
     @JsonIgnore
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
@@ -88,15 +93,10 @@ public class User implements UserDetails, Principal {
 
     @JsonIgnore
     @ManyToMany(mappedBy = "followers", fetch = FetchType.EAGER)
-    /*@JoinTable(
-            name = "user_following",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "following_id")
-    )*/
     private Set<User> following = new HashSet<>();
 
     @JsonIgnore
-    @ManyToMany(fetch = FetchType.EAGER)
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "user_saved_posts",
             joinColumns = @JoinColumn(name = "user_id"),
@@ -106,11 +106,11 @@ public class User implements UserDetails, Principal {
 
     @JsonIgnore
     @Embedded
-    @ElementCollection(fetch = FetchType.EAGER)
+    @ElementCollection(fetch = FetchType.LAZY)
     private Set<UserDto> recentSearchedUser = new HashSet<>();
 
     @JsonIgnore
-    @OneToMany(fetch = FetchType.EAGER, mappedBy = "user")
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "user")
     private List<Token> tokens;
 
     @Override

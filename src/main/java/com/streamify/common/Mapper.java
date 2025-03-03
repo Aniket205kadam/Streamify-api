@@ -6,11 +6,18 @@ import com.streamify.story.StoryReply;
 import com.streamify.story.StoryReplyResponse;
 import com.streamify.user.User;
 import com.streamify.user.UserDto;
+import com.streamify.user.UserRepository;
 import com.streamify.user.UserResponse;
 import org.springframework.stereotype.Service;
 
 @Service
 public class Mapper {
+    private final UserRepository userRepository;
+
+    public Mapper(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+
     public CommentResponse toCommentResponse(Comment comment) {
         return CommentResponse.builder()
                 .id(comment.getId())
@@ -60,12 +67,13 @@ public class Mapper {
                 .username(user.getUsername())
                 .avtarUrl(user.getProfilePictureUrl())
                 .followerCount(user.getFollowingCount())
-                .isFollowedByCurrentUser(connectedUser
+                .isFollowedByCurrentUser(/*connectedUser
                         .getFollowing()
                         .stream()
                         .anyMatch(followUser ->
                                 followUser.getId().equals(user.getId())
-                        )
+                        )*/
+                        userRepository.isFollowing(connectedUser.getId(), user.getUsername())
                 )
                 .build();
     }
