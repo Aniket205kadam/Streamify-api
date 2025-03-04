@@ -64,4 +64,12 @@ public interface UserRepository extends JpaRepository<User, String> {
             WHERE user.id = :userId
             """)
     List<User> findRecentSearchesWithDetails(@Param("userId") String userId);
+
+    @Query("""
+            SELECT user
+            FROM User user
+            LEFT JOIN FETCH user.savedPost
+            WHERE user.id = :userId
+            """)
+    Optional<User> findUserWithSavedPostDetailsById(@Param("userId") String userId);
 }

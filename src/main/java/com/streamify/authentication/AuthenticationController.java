@@ -59,7 +59,6 @@ public class AuthenticationController {
     public ResponseEntity<AuthenticationResponse> authenticate(
             @RequestBody @Valid AuthenticationRequest request
     ) {
-        System.out.println("User try to login: " + request.getIdentifier());
         return ResponseEntity
                 .ok(
                         authenticationService.authenticate(request)

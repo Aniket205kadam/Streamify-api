@@ -9,9 +9,18 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface PostRepository extends JpaRepository<Post, String> {
+    @Query("""
+            SELECT post
+            FROM Post post
+            LEFT JOIN FETCH post.likes
+            WHERE post.id = :postId
+            """)
+    Optional<Post> findWithLikesDetailsById(@Param("postId") String postId);
+
     @Query("""
         SELECT post
         FROM Post post

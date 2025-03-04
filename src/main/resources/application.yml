@@ -12,3 +12,8 @@ springdoc:
 server:
   servlet:
     context-path: /api/v1
+logging:
+  level:
+    org.springframework.security: DEBUG
+    org.springframework.web.socket: DEBUG
+    org.springframework.messaging: DEBUG

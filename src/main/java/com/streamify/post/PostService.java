@@ -204,8 +204,23 @@ public class PostService {
         return true;
     }
 
-    public String likePost(String postId) {
-        return null;
+    @Transactional
+    public Integer likePost(String postId, Authentication connectedUser) {
+        User user = (User) connectedUser.getPrincipal();
+        Post post = postRepository.findWithLikesDetailsById(postId)
+                .orElseThrow(() -> new EntityNotFoundException("Post is not found with ID: " + postId));
+        Set<User> prevLikes = post.getLikes();
+        if (post.getLikes().contains(user)) {
+            // Unlike the post
+            prevLikes.remove(user);
+        } else {
+            // Like the post
+            prevLikes.add(user);
+        }
+        // inc and dec the like count
+        post.setLikeCount(prevLikes.size());
+        post.setLikes(prevLikes);
+        return postRepository.save(post).getLikeCount();
     }
 
     public String uploadPostContent(Authentication connectedUser, MultipartFile... contents) throws IOException {
@@ -324,5 +339,38 @@ public class PostService {
                 .first(posts.isFirst())
                 .last(posts.isLast())
                 .build();
+    }
+
+    public Boolean isLikeThisPost(String postId, Authentication connectedUser) {
+        User user = (User) connectedUser.getPrincipal();
+        Post post = postRepository.findWithLikesDetailsById(postId)
+                .orElseThrow(() -> new EntityNotFoundException("Post is not found with ID: " + postId));
+        return post.getLikes().contains(user);
+    }
+
+    @Transactional
+    public void savePost(String postId, Authentication connectedUser) {
+        User user = (User) connectedUser.getPrincipal();
+        User userDetails = userRepository.findUserWithSavedPostDetailsById(user.getId())
+                .orElseThrow(() -> new EntityNotFoundException("User is not found with ID: " + user.getId()));
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new EntityNotFoundException("Post is not found with ID: " + postId));
+        Set<Post> savedPosts = userDetails.getSavedPost();
+        if (savedPosts.contains(post)) {
+            savedPosts.remove(post);
+        } else {
+            savedPosts.add(post);
+        }
+        userDetails.setSavedPost(savedPosts);
+        userRepository.save(userDetails);
+    }
+
+    public Boolean isSavedPost(String postId, Authentication connectedUser) {
+        User user = (User) connectedUser.getPrincipal();
+        User userDetails = userRepository.findUserWithSavedPostDetailsById(user.getId())
+                .orElseThrow(() -> new EntityNotFoundException("User is not found with ID: " + user.getId()));
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new EntityNotFoundException("Post is not found with ID: " + postId));
+        return userDetails.getSavedPost().contains(post);
     }
 }

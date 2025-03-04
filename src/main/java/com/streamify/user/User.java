@@ -77,11 +77,6 @@ public class User implements UserDetails, Principal {
     private String languagePreference;
 
     // relations
-    /*@JsonIgnore
-    @ManyToOne
-    @JoinColumn(name = "post_id", nullable = false)
-    private List<Post> likedPosts;*/
-
     @JsonIgnore
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(

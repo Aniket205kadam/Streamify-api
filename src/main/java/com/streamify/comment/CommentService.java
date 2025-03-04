@@ -14,8 +14,10 @@ import org.springframework.data.domain.Sort;
 import org.springframework.lang.NonNull;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class CommentService {
@@ -43,6 +45,8 @@ public class CommentService {
                 .post(post)
                 .status(CommentStatus.ACTIVE)
                 .build();
+        post.setCommentCount(post.getComments().size() + 1);
+        postRepository.save(post);
         return commentRepository.save(comment).getId();
     }
 
@@ -61,18 +65,21 @@ public class CommentService {
         return commentRepository.save(comment).getId();
     }
 
-    public String likeComment(String commentId, Authentication connectedUser) {
-        // todo - prevent the user to like multiple time
-        Comment comment = findCommentById(commentId);
-        comment.setLikes(comment.getLikes() + 1);
-        return commentRepository.save(comment).getId();
-    }
-
-    public String unlikeComment(String commentId, Authentication connectedUser) {
-        // todo - prevent the user to unlike multiple time
-        Comment comment = findCommentById(commentId);
-        comment.setLikes(comment.getLikes() - 1);
-        return commentRepository.save(comment).getId();
+    @Transactional
+    public Integer likeComment(String commentId, Authentication connectedUser) {
+        User user = (User) connectedUser.getPrincipal();
+        Comment comment = commentRepository.findCommentWithLikesDetailsById(commentId)
+                .orElseThrow(() -> new EntityNotFoundException("Comment is not found with ID: " + commentId));
+        Set<User> prevLikes = comment.getLikes();
+        if (prevLikes.contains(user)) {
+            // Unlike the comment
+            prevLikes.remove(user);
+        } else {
+            // Like the comment
+            prevLikes.add(user);
+        }
+        comment.setLikeCount(prevLikes.size());
+        return commentRepository.save(comment).getLikeCount();
     }
 
     public Boolean deleteComment(String commentId, Authentication connectedUser) {
@@ -138,5 +145,12 @@ public class CommentService {
                 .first(comments.isFirst())
                 .last(comments.isLast())
                 .build();
+    }
+
+    public Boolean isLikedComment(String commentId, Authentication connectedUser) {
+        User user = (User) connectedUser.getPrincipal();
+        return commentRepository.findCommentWithLikesDetailsById(commentId)
+                .orElseThrow(() -> new EntityNotFoundException("Comment is not with ID: " + commentId))
+                .getLikes().contains(user);
     }
 }

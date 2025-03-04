@@ -23,8 +23,8 @@ public class Mapper {
                 .id(comment.getId())
                 .content(comment.getContent())
                 .createdAt(comment.getCreatedAt())
-                .userId(comment.getUser().getId())
-                .likes(comment.getLikes())
+                .user(toUserDto(comment.getUser()))
+                .likeCount(comment.getLikeCount())
                 .replies(comment.getReplies().size())
                 .build();
     }
@@ -34,8 +34,8 @@ public class Mapper {
                 .id(comment.getId())
                 .content(comment.getContent())
                 .createdAt(comment.getCreatedAt())
-                .userId(comment.getUser().getId())
-                .likes(comment.getLikes())
+                .user(toUserDto(comment.getUser()))
+                .likeCount(comment.getLikeCount())
                 .build();
     }
 

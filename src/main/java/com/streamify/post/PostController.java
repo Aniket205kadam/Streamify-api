@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -20,10 +21,12 @@ import java.io.IOException;
 public class PostController {
     private final PostService postService;
     private final CommentService commentService;
+    private final SimpMessagingTemplate messagingTemplate;
 
-    public PostController(PostService postService, CommentService commentService) {
+    public PostController(PostService postService, CommentService commentService, SimpMessagingTemplate messagingTemplate) {
         this.postService = postService;
         this.commentService = commentService;
+        this.messagingTemplate = messagingTemplate;
     }
 
     @PostMapping("/contents")
@@ -96,13 +99,58 @@ public class PostController {
                 .body(postService.deletePostById(postId, connectedUser));
     }
 
-    @PatchMapping("/{post-id}/like")
-    public ResponseEntity<String> likePost(
-            @PathVariable("post-id") String postId
+    /*@MessageMapping("/{post-id}/like")
+    public void likePost(
+            @DestinationVariable("post-id") String postId,
+            Authentication connectedUser
     ) {
+        System.out.println("Someone try to like the post");
+        Integer likeCount = postService.likePost(postId, connectedUser);
+        messagingTemplate.convertAndSend(
+                 "/topic/posts/likes/" + postId,
+                likeCount
+        );
+    }
+*/
+
+    @PatchMapping("/{post-id}/like")
+    public ResponseEntity<Integer> likePost(
+            @PathVariable("post-id") String postId,
+            Authentication connectedUser
+    ) {
+         return ResponseEntity
+                 .status(HttpStatus.OK)
+                 .body(postService.likePost(postId, connectedUser));
+    }
+
+    @PatchMapping("{post-id}/save")
+    public ResponseEntity<?> savePost(
+            @PathVariable("post-id") String postId,
+            Authentication connectedUser
+    ) {
+        postService.savePost(postId, connectedUser);
         return ResponseEntity
                 .status(HttpStatus.OK)
-                .body(postService.likePost(postId));
+                .build();
+    }
+
+    @GetMapping("/{post-id}/isLiked")
+    public ResponseEntity<Boolean> isLikedPost(
+            @PathVariable("post-id") String postId,
+            Authentication connectedUser
+    ) {
+       return ResponseEntity
+               .status(HttpStatus.OK)
+               .body(postService.isLikeThisPost(postId, connectedUser));
+    }
+    @GetMapping("/{post-id}/isSaved")
+    public ResponseEntity<Boolean> isSavedPost(
+            @PathVariable("post-id") String postId,
+            Authentication connectedUser
+    ) {
+       return ResponseEntity
+               .status(HttpStatus.OK)
+               .body(postService.isSavedPost(postId, connectedUser));
     }
 
     @PostMapping("/{post-id}/comment")
@@ -130,23 +178,13 @@ public class PostController {
     }
 
     @PatchMapping("/comment/{comment-id}/like")
-    public ResponseEntity<String> likeComment(
+    public ResponseEntity<Integer> likeComment(
             @PathVariable("comment-id") String commentId,
             Authentication connectedUser
     ) {
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(commentService.likeComment(commentId, connectedUser));
-    }
-
-    @PatchMapping("/comment/{comment-id}/unlike")
-    public ResponseEntity<String> unlikeComment(
-            @PathVariable("comment-id") String commentId,
-            Authentication connectedUser
-    ) {
-        return ResponseEntity
-                .status(HttpStatus.OK)
-                .body(commentService.unlikeComment(commentId, connectedUser));
     }
 
     @DeleteMapping("/comment/{comment-id}")
@@ -180,6 +218,16 @@ public class PostController {
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(commentService.getAllPostComment(postId, page, size));
+    }
+
+    @GetMapping("/comment/{comment-id}/isLiked")
+    public ResponseEntity<Boolean> isLikedComment(
+            @PathVariable("comment-id") String commentId,
+            Authentication connectedUser
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(commentService.isLikedComment(commentId, connectedUser));
     }
 
     @GetMapping("/{comment-id}/replies")
