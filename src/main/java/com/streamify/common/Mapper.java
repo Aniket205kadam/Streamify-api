@@ -56,6 +56,8 @@ public class Mapper {
         return UserDto.builder()
                 .id(user.getId())
                 .username(user.getUsername())
+                .fullName(user.getFullName())
+                .followerCount(user.getFollowerCount())
                 .avtarUrl(null)
                 .build();
     }

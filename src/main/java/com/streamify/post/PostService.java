@@ -373,4 +373,21 @@ public class PostService {
                 .orElseThrow(() -> new EntityNotFoundException("Post is not found with ID: " + postId));
         return userDetails.getSavedPost().contains(post);
     }
+
+    public PageResponse<PostResponse> getSuggestedContent(int page, int size, Authentication connectedUser) {
+        User user = (User) connectedUser.getPrincipal();
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Post> posts = postRepository.findAll(pageable);
+        List<PostResponse> postResponses = (posts.stream().map(postMapper::toPostResponse).toList())
+                .stream().filter(post -> !(post.getUser().getId().equals(user.getId()))).toList();
+        return PageResponse.<PostResponse>builder()
+                .content(postResponses)
+                .number(posts.getNumber())
+                .size(posts.getSize())
+                .totalPages(posts.getTotalPages())
+                .totalElements(posts.getTotalElements())
+                .first(posts.isFirst())
+                .last(posts.isLast())
+                .build();
+    }
 }

@@ -72,4 +72,11 @@ public interface UserRepository extends JpaRepository<User, String> {
             WHERE user.id = :userId
             """)
     Optional<User> findUserWithSavedPostDetailsById(@Param("userId") String userId);
+
+    @Query("""
+            SELECT user
+            FROM User user
+            ORDER BY SIZE(user.followingCount) DESC
+            """)
+    Page<User> findMostFollowingCountUsers(Pageable pageable);
 }

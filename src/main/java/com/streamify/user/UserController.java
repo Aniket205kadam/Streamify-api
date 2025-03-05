@@ -41,6 +41,17 @@ public class UserController {
                 .body(userService.findUserByUsername(username));
     }
 
+    @GetMapping("/suggestedUsers")
+    public ResponseEntity<PageResponse<UserDto>> getSuggestedUsers(
+            @RequestParam(name = "page", defaultValue = "0", required = false) int page,
+            @RequestParam(name = "size", defaultValue = "5", required = false) int size,
+            Authentication connectedUser
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(userService.getSuggestedUsers2(page, size, connectedUser));
+    }
+
     @GetMapping("/search")
     public ResponseEntity<PageResponse<UserDto>> searchUsers(
             @RequestParam("query") String query,

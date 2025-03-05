@@ -7,13 +7,13 @@ import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.lang.NonNull;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 @Service
 public class UserService {
@@ -148,5 +148,81 @@ public class UserService {
                 .anyMatch((user) ->
                         user.getId().equals(userId)
                 );
+    }
+
+    /*public PageResponse<UserDto> getSuggestedUsers(int page, int size, Authentication connectedUser) {
+        User user = (User) connectedUser.getPrincipal();
+        Set<User> suggestedFriends = new HashSet<>();
+        Map<String, Integer> priority = new HashMap<>();
+
+        // Suggest friends of friends
+        if (!user.getFollowing().isEmpty()) {
+            for (User following : user.getFollowing()) {
+                following.getFollowing().forEach(friend -> {
+                    if (!friend.equals(user)) {
+                        suggestedFriends.add(friend);
+                        priority.merge(friend.getUsername(), 1, Integer::sum);
+                    }
+                });
+            }
+        }
+
+        // If suggested friends are less than 20, add famous users
+        int remainingCount = Math.max(0, 20 - suggestedFriends.size());
+        if (remainingCount > 0) {
+            Pageable pageable = PageRequest.of(0, remainingCount);
+            Page<User> famousUsers = userRepository.findMostFollowingCountUsers(pageable);
+            famousUsers.forEach(famousUser -> {
+                suggestedFriends.add(famousUser);
+                priority.putIfAbsent(famousUser.getUsername(), 0);
+            });
+        }
+
+        // Sort users based on priority (higher values first)
+        List<String> sortedUsers = priority.entrySet()
+                .stream()
+                .sorted((a, b) -> Integer.compare(b.getValue(), a.getValue()))
+                .map(Map.Entry::getKey)
+                .toList();
+
+        // Convert sorted users to UserDto list
+        List<UserDto> prioritySuggestedUsers = sortedUsers.stream()
+                .map(username -> suggestedFriends.stream()
+                        .filter(userObj -> userObj.getUsername().equals(username))
+                        .findFirst()
+                        .map(mapper::toUserDto)
+                        .orElse(null))
+                .filter(Objects::nonNull)
+                .toList();
+
+        // Pagination logic
+        int startPoint = page * size;
+        int endPoint = Math.min(startPoint + size, prioritySuggestedUsers.size());
+        int totalPages = (int) Math.ceil((double) prioritySuggestedUsers.size() / size);
+
+        return PageResponse.<UserDto>builder()
+                .content(prioritySuggestedUsers.subList(startPoint, endPoint))
+                .totalPages(totalPages)
+                .totalElements(prioritySuggestedUsers.size())
+                .first(page == 0)
+                .last(endPoint == prioritySuggestedUsers.size())
+                .build();
+    }*/
+
+    public PageResponse<UserDto> getSuggestedUsers2(int page, int size, Authentication connectedUser) {
+        User currentUser = (User) connectedUser.getPrincipal();
+        Pageable pageable = PageRequest.of(page, size, Sort.by("followingCount").ascending());
+        Page<User> users = userRepository.findAll(pageable);
+        return PageResponse.<UserDto>builder()
+                .content(
+                        (users.stream().map(mapper::toUserDto).toList())
+                                .stream().filter(user -> user.getId() != currentUser.getId()).toList())
+                .first(users.isFirst())
+                .last(users.isLast())
+                .totalElements(users.getTotalElements())
+                .totalPages(users.getTotalPages())
+                .size(users.getTotalPages())
+                .number(users.getNumber())
+                .build();
     }
 }

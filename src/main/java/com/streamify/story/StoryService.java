@@ -20,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -243,4 +244,30 @@ public class StoryService {
         }
         storyRepository.deleteById(storyId);
     }
+
+    public List<FollowingsStoryResponse> findAllFollowingsStories(Authentication connectedUser) {
+        User user = (User) connectedUser.getPrincipal();
+        List<FollowingsStoryResponse> followingsStoryResponses = new ArrayList<>();
+
+        System.out.println("Followings count: " + user.getFollowing().size());
+
+        for (User following : user.getFollowing()) {
+            List<Story> followingsStories = storyRepository.findAllValidUserStories(following.getId());
+
+            if (!followingsStories.isEmpty()) {
+                boolean isViewAllStories = followingsStories.stream()
+                        .allMatch(story -> story.getViews().stream()
+                                .anyMatch(view -> view.getViewer().equals(user))
+                        );
+
+                followingsStoryResponses.add(FollowingsStoryResponse.builder()
+                        .id(following.getId())
+                        .username(following.getUsername())
+                        .allStoriesSeen(isViewAllStories)
+                        .build());
+            }
+        }
+        return followingsStoryResponses;
+    }
+
 }

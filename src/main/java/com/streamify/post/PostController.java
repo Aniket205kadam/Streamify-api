@@ -251,4 +251,15 @@ public class PostController {
                 .status(HttpStatus.OK)
                 .body(postService.findFollowingsPosts(connectedUser, page, size));
     }
+
+    @GetMapping("/explore")
+    public ResponseEntity<PageResponse<PostResponse>> getExploreContent(
+            @RequestParam(name = "page", defaultValue = "0", required = false) int page,
+            @RequestParam(name = "size", defaultValue = "10", required = false) int size,
+            Authentication connectedUser
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(postService.getSuggestedContent(page, size, connectedUser));
+    }
 }
