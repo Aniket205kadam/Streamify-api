@@ -262,4 +262,15 @@ public class PostController {
                 .status(HttpStatus.OK)
                 .body(postService.getSuggestedContent(page, size, connectedUser));
     }
+
+    @GetMapping("/reels")
+    public ResponseEntity<PageResponse<PostResponse>> getReels(
+            @RequestParam(name = "page", defaultValue = "0", required = false) int page,
+            @RequestParam(name = "size", defaultValue = "10", required = false) int size,
+            Authentication connectedUser
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(postService.getReels(page, size, connectedUser));
+    }
 }

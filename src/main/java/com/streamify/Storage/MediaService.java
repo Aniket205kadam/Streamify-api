@@ -24,4 +24,6 @@ public interface MediaService {
     Resource getPostPreviewImage(String postId) throws IOException, InterruptedException;
 
     Resource getPostContent(String postMediaId) throws MalformedURLException;
+
+    Resource getStoryContent(String storyId) throws MalformedURLException;
 }

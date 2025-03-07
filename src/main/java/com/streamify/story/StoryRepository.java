@@ -38,4 +38,13 @@ public interface StoryRepository extends JpaRepository<Story, String> {
             AND story.expiredAt > CURRENT_TIMESTAMP
             """)
     boolean isValidStoryExist(@Param("userId") String userId);
+
+    @Query("""
+            SELECT story
+            FROM Story story
+            LEFT JOIN FETCH
+            story.likedUsers
+            WHERE story.id = :storyId
+            """)
+    Optional<Story> findStoryWithLikedUsersById(@Param("storyId") String storyId);
 }

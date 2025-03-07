@@ -47,4 +47,13 @@ public class MediaController {
                 .body(mediaService.getPostContent(postMediaId));
     }
 
+    @GetMapping("/story/{story-id}")
+    public ResponseEntity<Resource> getStoryContent(
+            @PathVariable("story-id") String storyId
+    ) throws MalformedURLException {
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(mediaService.getStoryContent(storyId));
+    }
+
 }

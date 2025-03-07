@@ -13,6 +13,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.Month;
 import java.util.*;
 
 @Service
@@ -213,10 +215,19 @@ public class UserService {
         User currentUser = (User) connectedUser.getPrincipal();
         Pageable pageable = PageRequest.of(page, size, Sort.by("followingCount").ascending());
         Page<User> users = userRepository.findAll(pageable);
+        Set<User> currentUserFollowings = currentUser.getFollowing();
+        List<UserDto> filterUsers = users
+                .stream()
+                .map(mapper::toUserDto)
+                .toList()
+                .stream()
+                .filter(user -> !user.getId().equals(currentUser.getId()))
+                .filter(user -> !currentUserFollowings.stream()
+                        .anyMatch(follow -> follow.getId().equals(user.getId()))
+                )
+                .toList();
         return PageResponse.<UserDto>builder()
-                .content(
-                        (users.stream().map(mapper::toUserDto).toList())
-                                .stream().filter(user -> user.getId() != currentUser.getId()).toList())
+                .content(filterUsers)
                 .first(users.isFirst())
                 .last(users.isLast())
                 .totalElements(users.getTotalElements())
@@ -224,5 +235,22 @@ public class UserService {
                 .size(users.getTotalPages())
                 .number(users.getNumber())
                 .build();
+    }
+
+    public AboutAccount findAboutInfo(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new EntityNotFoundException("User is not found with username: " + username));
+        return AboutAccount.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .joinedDate(generateJoinedDate(user.getCreateAt()))
+                .accountBasedOn("India") //todo -> later go dynamic...
+                .build();
+    }
+
+    private String generateJoinedDate(LocalDate createAt) {
+        String month = createAt.getMonth().toString();
+        String year = String.valueOf(createAt.getYear());
+        return (month.charAt(0) + month.substring(1).toLowerCase()) + " " + year;
     }
 }

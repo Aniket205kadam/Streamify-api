@@ -185,13 +185,13 @@ public class UserController {
                 .body(postService.getAllMyReel(page, size, connectedUser));
     }
 
-    @GetMapping("/{user-id}/stories")
+    @GetMapping("/{username}/stories")
     public ResponseEntity<List<StoryResponse>> findStoryByUser(
-            @PathVariable("user-id") String userId
+            @PathVariable("username") String username
     ) {
         return ResponseEntity
                 .status(HttpStatus.OK)
-                .body(storyService.findStoriesByUser(userId));
+                .body(storyService.findStoriesByUser(username));
     }
 
     @GetMapping("/has-story")
@@ -202,5 +202,14 @@ public class UserController {
                 .status(HttpStatus.OK)
                 .body(userService.connectedUserHasStory(connectedUser)
                 );
+    }
+
+    @GetMapping("/{username}/about-account")
+    public ResponseEntity<AboutAccount> getAboutInfo(
+            @PathVariable("username") String username
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(userService.findAboutInfo(username));
     }
 }

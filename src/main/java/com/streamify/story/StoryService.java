@@ -20,10 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -47,10 +44,15 @@ public class StoryService {
     @Transactional
     public String addStory(String caption, boolean isArchived, MultipartFile content, Authentication connectedUser) throws IOException, InterruptedException {
         User user = (User) connectedUser.getPrincipal();
+
+        // user can only upload image and video
+        if (!(content.getContentType().startsWith("image/") || content.getContentType().startsWith("video/"))) {
+            throw new OperationNotPermittedException("For the story you can only upload the image or 15s video");
+        }
         Story story = Story.builder()
                 .caption(caption)
                 .isArchived(isArchived)
-                .type(StoryType.IMAGE)
+                .type(content.getContentType().startsWith("image/") ? StoryType.IMAGE : StoryType.VIDEO)
                 .user(user)
                 .mediaUrl("")
                 .expiredAt(LocalDateTime.now().plusHours(12))
@@ -97,10 +99,10 @@ public class StoryService {
                 .build();
     }
 
-    public List<StoryResponse> findStoriesByUser(String userId) {
-        User user = userRepository.findById(userId)
+    public List<StoryResponse> findStoriesByUser(String username) {
+        User user = userRepository.findByUsername(username)
                 .orElseThrow(() ->
-                        new EntityNotFoundException("User not found with ID: " + userId)
+                        new EntityNotFoundException("User not found with username: " + username)
                 );
         List<Story> stories = storyRepository.findAllValidUserStories(user.getId());
         return stories.stream().map(story -> {
@@ -112,7 +114,7 @@ public class StoryService {
                             .viewer(UserDto.builder()
                                     .id(view.getViewer().getId())
                                     .username(view.getViewer().getUsername())
-                                    .avtarUrl(null) //todo -> impl user avtar
+                                    .avtarUrl(null)
                                     .build()
                             )
                             .viewedAt(view.getViewedAt())
@@ -155,10 +157,12 @@ public class StoryService {
                 );
     }
 
-    public void viewStory(String storyId, String viewerId) {
+    @Transactional
+    public void viewStory(String storyId, Authentication connectedUser) {
+        User currentUser = (User) connectedUser.getPrincipal();
         Story story = getStoryById(storyId);
-        User viewer = getUserById(viewerId);
-        if (story.getViews().isEmpty()) {
+        User viewer = getUserById(currentUser.getId());
+        if (story.getViews() == null) {
             story.setViews(new LinkedHashSet<>());
         }
         boolean isViewerAlreadyPresent = story.getViews()
@@ -177,6 +181,7 @@ public class StoryService {
         storyRepository.save(story);
     }
 
+
     @Transactional
     public void sendReplyToStory(String content, String storyId, Authentication connectedUser) {
         User user = (User) connectedUser.getPrincipal();
@@ -186,7 +191,9 @@ public class StoryService {
                 .user(user)
                 .story(story)
                 .build();
+        story.setReplyCount(story.getReplyCount() + 1);
         storyReplyRepository.save(reply);
+        storyRepository.save(story);
     }
 
     public PageResponse<StoryReplyResponse> findAllStoryReplies(String storyId, Authentication connectedUser, int page, int size) {
@@ -270,4 +277,48 @@ public class StoryService {
         return followingsStoryResponses;
     }
 
+    @Transactional
+    public void likeStory(String storyId, Authentication connectedUser) {
+        User user = (User) connectedUser.getPrincipal();
+        Story story = storyRepository.findStoryWithLikedUsersById(storyId)
+                .orElseThrow(() -> new EntityNotFoundException("Story is not found with ID: " + storyId));
+        if (LocalDateTime.now().isAfter(story.getExpiredAt())) {
+            throw new OperationNotPermittedException("This story has expired. You can't like it!");
+        }
+        Set<UserDto> storyLikedUsers = story.getLikedUsers();
+       if (storyLikedUsers.stream().anyMatch(likes -> likes.getId().equals(user.getId()))) {
+           // Unlike the story
+           Optional<UserDto> likedUsers = storyLikedUsers.stream().filter(likes -> likes.getId().equals(user.getId())).findFirst();
+           storyLikedUsers.remove(likedUsers.orElseThrow(() -> new OperationNotPermittedException("Contact to the admin, this is Internal error.")));
+       } else {
+           // Like the story
+           storyLikedUsers.add(mapper.toUserDto(user));
+       }
+       story.setLikedUsers(storyLikedUsers);
+       story.setLikeCount(storyLikedUsers.size());
+       storyRepository.save(story);
+    }
+
+    public Boolean isLikedStoryUser(String storyId, Authentication connectedUser) {
+        User user = (User) connectedUser.getPrincipal();
+        Story story = storyRepository.findStoryWithLikedUsersById(storyId)
+                .orElseThrow(() -> new EntityNotFoundException("Story is not found with ID: " + storyId));
+        for (UserDto userDto : story.getLikedUsers()) {
+            System.out.println("LIKE BY :" + userDto.getUsername());
+        }
+        return story
+                .getLikedUsers()
+                .stream().anyMatch(likes -> likes.getId().equals(user.getId()));
+    }
+
+    public List<UserDto> findAllStoryLikedUsers(String storyId, Authentication connectedUser) {
+        User user = (User) connectedUser.getPrincipal();
+        Story story = storyRepository.findStoryWithLikedUsersById(storyId)
+                .orElseThrow(() -> new EntityNotFoundException("Story is not found with ID: " + storyId));
+        if (!user.getId().equals(story.getUser().getId())) {
+            throw new OperationNotPermittedException("You are not the story owner, so you can't see the story liked users");
+        }
+        Set<UserDto> likedUsers = story.getLikedUsers();
+        return likedUsers.stream().toList();
+    }
 }

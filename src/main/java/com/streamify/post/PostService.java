@@ -390,4 +390,26 @@ public class PostService {
                 .last(posts.isLast())
                 .build();
     }
+
+    public PageResponse<PostResponse> getReels(int page, int size, Authentication connectedUser) {
+        User user = (User) connectedUser.getPrincipal();
+
+        //todo -> here we mostly get the liked star reels
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Post> posts = postRepository.findAllReels(pageable);
+        List<PostResponse> reels = posts
+                .stream()
+                .map(postMapper::toPostResponse)
+                .toList();
+        return PageResponse.<PostResponse>builder()
+                .content(reels)
+                .number(posts.getNumber())
+                .size(posts.getSize())
+                .totalPages(posts.getTotalPages())
+                .totalElements(posts.getTotalElements())
+                .first(posts.isFirst())
+                .last(posts.isLast())
+                .build();
+    }
 }

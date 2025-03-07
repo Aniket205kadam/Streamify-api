@@ -6,6 +6,8 @@ import com.streamify.post.Post;
 import com.streamify.post.PostMedia;
 import com.streamify.post.PostMediaRepository;
 import com.streamify.post.PostRepository;
+import com.streamify.story.Story;
+import com.streamify.story.StoryRepository;
 import com.streamify.user.User;
 import com.streamify.user.UserRepository;
 import jakarta.annotation.PostConstruct;
@@ -37,6 +39,7 @@ public class MediaServiceImpl implements MediaService {
     private final UserRepository userRepository;
     private final PostRepository postRepository;
     private final PostMediaRepository postMediaRepository;
+    private final StoryRepository storyRepository;
 
     @Value("${application.file.upload.content-base-url.post}")
     private String postBaseUrl;
@@ -50,11 +53,12 @@ public class MediaServiceImpl implements MediaService {
     @Value("${application.file.upload.content-base-url.thumbnail}")
     private String thumbnailUrl;
 
-    public MediaServiceImpl(FfmpegService ffmpegService, UserRepository userRepository, PostRepository postRepository, PostMediaRepository postMediaRepository) {
+    public MediaServiceImpl(FfmpegService ffmpegService, UserRepository userRepository, PostRepository postRepository, PostMediaRepository postMediaRepository, StoryRepository storyRepository) {
         this.ffmpegService = ffmpegService;
         this.userRepository = userRepository;
         this.postRepository = postRepository;
         this.postMediaRepository = postMediaRepository;
+        this.storyRepository = storyRepository;
     }
 
     @PostConstruct
@@ -86,10 +90,11 @@ public class MediaServiceImpl implements MediaService {
         try {
             Files.write(targetPath, sourceFile.getBytes());
             LOGGER.info("Post Content saved to {}", targetFilePath);
-            if (Objects.requireNonNull(sourceFile.getContentType()).startsWith("video/")) {
+            //todo -> for now we are not hls the video, there is bug later updated we are resolve this..!
+            /*if (Objects.requireNonNull(sourceFile.getContentType()).startsWith("video/")) {
                 // process the video
                 ffmpegService.processPostVideoWithFfmpeg(targetPath, postId, userId);
-            }
+            }*/
             return targetFilePath;
         } catch (IOException exception) {
             LOGGER.error("Post Content was not saved @error: {}", exception.getMessage());
@@ -139,13 +144,13 @@ public class MediaServiceImpl implements MediaService {
             return targetFilePath;
         } else if (sourceFile.getContentType().startsWith("video/")) {
             if (!isValidStoryVideo(sourceFile)) {
-                throw new IllegalStateException("You can only upload 15s story video!");
+                throw new OperationNotPermittedException("You can only upload 15s story video!");
             }
             Files.write(targetPath, sourceFile.getBytes());
             LOGGER.info("Story video saved to {}", targetFilePath);
 
             // process the video using the ffmpeg
-            ffmpegService.processStoryVideoWithFfmpeg(targetPath, storyId, userId);
+            //ffmpegService.processStoryVideoWithFfmpeg(targetPath, storyId, userId);
             return targetFilePath;
         } else {
             throw new IllegalStateException("Only image and videos are allowed for story!");
@@ -242,6 +247,18 @@ public class MediaServiceImpl implements MediaService {
             throw new OperationNotPermittedException("Media file not found, not readable, or is a directory: " + mediaPath);
         }
 
+        return new UrlResource(mediaPath.toUri());
+    }
+
+    @Override
+    public Resource getStoryContent(String storyId) throws MalformedURLException {
+        Story story = storyRepository.findById(storyId)
+                .orElseThrow(() -> new EntityNotFoundException("Story is not found with ID: " + storyId));
+        Path mediaPath = Paths.get(story.getMediaUrl()).toAbsolutePath().normalize();
+
+        if (!Files.exists(mediaPath) || !Files.isReadable(mediaPath) || Files.isDirectory(mediaPath)) {
+            throw new OperationNotPermittedException("Media file not found, not readable, or is a directory: " + mediaPath);
+        }
         return new UrlResource(mediaPath.toUri());
     }
 

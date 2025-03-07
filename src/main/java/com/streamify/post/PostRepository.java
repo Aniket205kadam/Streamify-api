@@ -68,4 +68,11 @@ public interface PostRepository extends JpaRepository<Post, String> {
             WHERE :user MEMBER OF post.user.followers
             """)
     Page<Post> findAllFollowingsPosts(Pageable pageable, @Param("user") User user);
+
+    @Query("""
+            SELECT post
+            FROM Post post
+            WHERE post.isReel = true
+            """)
+    Page<Post> findAllReels(Pageable pageable);
 }
