@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -30,6 +31,9 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+
+import static java.io.File.separator;
+import static java.lang.System.currentTimeMillis;
 
 @Service
 public class MediaServiceImpl implements MediaService {
@@ -53,6 +57,9 @@ public class MediaServiceImpl implements MediaService {
     @Value("${application.file.upload.content-base-url.thumbnail}")
     private String thumbnailUrl;
 
+    @Value("${application.file.upload.content-base-url.chat}")
+    private String chatBaseUrl;
+
     public MediaServiceImpl(FfmpegService ffmpegService, UserRepository userRepository, PostRepository postRepository, PostMediaRepository postMediaRepository, StoryRepository storyRepository) {
         this.ffmpegService = ffmpegService;
         this.userRepository = userRepository;
@@ -63,16 +70,17 @@ public class MediaServiceImpl implements MediaService {
 
     @PostConstruct
     public void init() {
-        postBaseUrl = postBaseUrl.replace("/", File.separator);
-        storyBaseUrl = storyBaseUrl.replace("/", File.separator);
-        profileBaseUrl = profileBaseUrl.replace("/", File.separator);
-        thumbnailUrl = thumbnailUrl.replace("/", File.separator);
+        postBaseUrl = postBaseUrl.replace("/", separator);
+        storyBaseUrl = storyBaseUrl.replace("/", separator);
+        profileBaseUrl = profileBaseUrl.replace("/", separator);
+        thumbnailUrl = thumbnailUrl.replace("/", separator);
+        chatBaseUrl = chatBaseUrl.replace("/", separator);
     }
 
     @Override
     public String uploadPostContent(MultipartFile sourceFile, String userId, String postId) throws IOException {
         final String fileExtension = getFileExtension(sourceFile.getOriginalFilename());
-        final String finalFileUploadPath = postBaseUrl + File.separator + userId + File.separator + postId;
+        final String finalFileUploadPath = postBaseUrl + separator + userId + separator + postId;
         File targetFolder = new File(finalFileUploadPath);
         if (!targetFolder.exists()) {
             boolean isFolderCreated = targetFolder.mkdirs();
@@ -85,7 +93,7 @@ public class MediaServiceImpl implements MediaService {
         if (fileExtension == null) {
             throw new IllegalStateException("File extension is not supported");
         }
-        String targetFilePath = finalFileUploadPath + File.separator + UUID.randomUUID() + "." + fileExtension;
+        String targetFilePath = finalFileUploadPath + separator + UUID.randomUUID() + "." + fileExtension;
         Path targetPath = Paths.get(targetFilePath);
         try {
             Files.write(targetPath, sourceFile.getBytes());
@@ -113,7 +121,7 @@ public class MediaServiceImpl implements MediaService {
                        sourceFiles.getFirst().getMediaUrl()
                                .substring(
                                        0,
-                                       sourceFiles.getFirst().getMediaUrl().lastIndexOf(File.separator)
+                                       sourceFiles.getFirst().getMediaUrl().lastIndexOf(separator)
                                )
                )
        );
@@ -123,7 +131,7 @@ public class MediaServiceImpl implements MediaService {
     @Override
     public String uploadStoryContent(MultipartFile sourceFile, String storyId, String userId) throws IOException, InterruptedException {
         final String fileExtension = getFileExtension(sourceFile.getOriginalFilename());
-        final String finalFileUploadPath = storyBaseUrl + File.separator + userId;
+        final String finalFileUploadPath = storyBaseUrl + separator + userId;
         File targetFolder = new File(finalFileUploadPath);
         if (!targetFolder.exists()) {
             boolean isFolderCreated = targetFolder.mkdirs();
@@ -136,7 +144,7 @@ public class MediaServiceImpl implements MediaService {
         if (fileExtension == null) {
             throw new IllegalStateException("File extension is not supported");
         }
-        String targetFilePath = finalFileUploadPath + File.separator + UUID.randomUUID() + "." + fileExtension;
+        String targetFilePath = finalFileUploadPath + separator + UUID.randomUUID() + "." + fileExtension;
         Path targetPath = Paths.get(targetFilePath);
         if (sourceFile.getContentType().startsWith("image/")) {
             Files.write(targetPath, sourceFile.getBytes());
@@ -260,6 +268,33 @@ public class MediaServiceImpl implements MediaService {
             throw new OperationNotPermittedException("Media file not found, not readable, or is a directory: " + mediaPath);
         }
         return new UrlResource(mediaPath.toUri());
+    }
+
+    @Override
+    public String uploadChatContent(
+            @NonNull MultipartFile sourceFile,
+            @NonNull String userId
+    ) {
+        final String finalUploadPath = chatBaseUrl + separator + "users" + separator + userId;
+        File targetFolder = new File(finalUploadPath);
+        if (!targetFolder.exists()) {
+            boolean folderCreated = targetFolder.mkdirs();
+            if (!folderCreated) {
+                LOGGER.warn("Failed to create the target folder: {}", targetFolder);
+                return null;
+            }
+        }
+        final String fileExtension = getFileExtension(sourceFile.getOriginalFilename());
+        final String targetFilePath = finalUploadPath + separator + currentTimeMillis() + "." + fileExtension;
+        Path targetPath = Paths.get(targetFilePath);
+        try {
+            Files.write(targetPath, sourceFile.getBytes());
+            LOGGER.info("File saved to: {}", targetFilePath);
+            return targetFilePath;
+        } catch (IOException e) {
+            LOGGER.error("File was not saved {0}", e);
+            throw new OperationNotPermittedException("Internal error file is corrupted!");
+        }
     }
 
     private boolean isValidStoryVideo(MultipartFile sourceFile) throws IOException, InterruptedException {

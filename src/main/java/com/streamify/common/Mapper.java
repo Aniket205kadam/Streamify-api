@@ -1,7 +1,12 @@
 package com.streamify.common;
 
+import com.streamify.Storage.FileUtils;
+import com.streamify.chat.Chat;
+import com.streamify.chat.ChatResponse;
 import com.streamify.comment.Comment;
 import com.streamify.comment.CommentResponse;
+import com.streamify.message.Message;
+import com.streamify.message.MessageResponse;
 import com.streamify.story.StoryReply;
 import com.streamify.story.StoryReplyResponse;
 import com.streamify.user.User;
@@ -92,6 +97,33 @@ public class Mapper {
                 .followerCount(request.getFollowerCount())
                 .followingCount(request.getFollowingCount())
                 .postsCount(request.getPostsCount())
+                .build();
+    }
+
+    public ChatResponse toChatResponse(Chat chat, String senderId) {
+        return ChatResponse.builder()
+                .id(chat.getId())
+                .name(chat.getChatName(senderId))
+                .unreadCount(chat.getUnreadMessages(senderId))
+                .lastMessage(chat.getLastMessage())
+                .lastMessageTime(chat.getLastMessageTime())
+                //.isRecipientOnline(chat.getRecipient().isUserOnline())
+                .isRecipientOnline(false)
+                .senderId(chat.getSender().getId())
+                .receiverId(chat.getRecipient().getId())
+                .build();
+    }
+
+    public MessageResponse toMessageResponse(Message message) {
+        return MessageResponse.builder()
+                .id(message.getId())
+                .content(message.getContent())
+                .messageType(message.getType())
+                .state(message.getState())
+                .media(FileUtils.readFileFromLocation(message.getMediaFilePath()))
+                .createdAt(message.getCreatedDate())
+                .receiverId(message.getReceiverId())
+                .senderId(message.getSenderId())
                 .build();
     }
 }

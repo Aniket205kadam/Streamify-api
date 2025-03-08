@@ -54,3 +54,4 @@ application:
         profile: ./profile-assets
         temp: ./temp
         thumbnail: ./thumbnail
+        chat: ./chat-assets

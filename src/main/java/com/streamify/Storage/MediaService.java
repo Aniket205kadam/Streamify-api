@@ -26,4 +26,6 @@ public interface MediaService {
     Resource getPostContent(String postMediaId) throws MalformedURLException;
 
     Resource getStoryContent(String storyId) throws MalformedURLException;
+
+    String uploadChatContent(MultipartFile file, String senderId);
 }
