@@ -85,6 +85,18 @@ public class StoryController {
                 .body(storyService.findAllStoryReplies(storyId, connectedUser, page, size));
     }
 
+    @GetMapping("/{story-id}/views")
+    public ResponseEntity<PageResponse<StoryViewDto>> findAllViewers(
+            @PathVariable("story-id") String storyId,
+            @RequestParam(name = "page", defaultValue = "0", required = false) int page,
+            @RequestParam(name = "size", defaultValue = "10", required = false) int size,
+            Authentication connectedUser
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(storyService.findAllStoryViewer(storyId, connectedUser, page, size));
+    }
+
     @PutMapping("/{story-id}")
     public ResponseEntity<String> updateStory(
             @PathVariable("story-id") String storyId,

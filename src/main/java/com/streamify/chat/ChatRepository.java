@@ -24,7 +24,8 @@ public interface ChatRepository extends JpaRepository<Chat, String> {
     @Query("""
             SELECT chat
             FROM Chat chat
-            WHERE sender.id = :senderId
+            WHERE sender.id = :userId
+            OR recipient.id = :userId
             """)
-    List<Chat> findChatBySenderId(@Param("senderId") String userId);
+    List<Chat> findChatBySenderId(@Param("userId") String userId);
 }

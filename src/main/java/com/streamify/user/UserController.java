@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -211,5 +212,43 @@ public class UserController {
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(userService.findAboutInfo(username));
+    }
+
+    @GetMapping("/isMutualFriend/{username}")
+    public ResponseEntity<Boolean> isMutualFriend(
+            @PathVariable("username") String friendUsername,
+            Authentication connectedUser
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(userService.isMutualFriend(friendUsername, connectedUser));
+    }
+
+    @PostMapping("/avtar")
+    public ResponseEntity<String> updateUserProfile(
+            Authentication connectedUser,
+            @RequestPart("avtar") MultipartFile avtar
+    ) throws Exception {
+        return ResponseEntity
+                .status(HttpStatus.ACCEPTED)
+                .body(userService.uploadProfile(connectedUser, avtar));
+    }
+
+    @DeleteMapping("/remove/avtar")
+    public ResponseEntity<String> removeProfile(
+            Authentication connectedUser
+    ) throws Exception {
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(userService.removeProfile(connectedUser));
+    }
+
+    @ResponseStatus(HttpStatus.OK)
+    @PutMapping("/account/edit")
+    public void updateAccount(
+            @RequestBody UpdateRequest request,
+            Authentication connectedUser
+    ) {
+        userService.updateAccount(request, connectedUser);
     }
 }

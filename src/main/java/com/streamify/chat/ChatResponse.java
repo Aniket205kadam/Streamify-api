@@ -12,8 +12,10 @@ import java.time.LocalDateTime;
 public class ChatResponse {
     private String id;
     private String name;
+    private String username;
     private long unreadCount;
     private String lastMessage;
+    private String lastMessagedUsername;
     private LocalDateTime lastMessageTime;
     private boolean isRecipientOnline;
     private String senderId;

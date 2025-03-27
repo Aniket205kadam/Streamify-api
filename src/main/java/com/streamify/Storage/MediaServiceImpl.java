@@ -28,6 +28,7 @@ import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -179,7 +180,7 @@ public class MediaServiceImpl implements MediaService {
         String userProfileImage = user.getProfilePictureUrl();
 
         if (!StringUtils.hasText(userProfileImage)) {
-           userProfileImage = Paths.get(profileBaseUrl, "common-avatar", "no-profile-image.png").toString();
+           userProfileImage = Paths.get(profileBaseUrl, "common-avatar", "no-profile-image.jpg").toString();
         }
         Path imagePath = Paths.get(userProfileImage).normalize();
         Resource resource = new UrlResource(imagePath.toUri());
@@ -187,6 +188,32 @@ public class MediaServiceImpl implements MediaService {
             return resource;
         }
         throw new OperationNotPermittedException("Image not found or not readable: " + userProfileImage);
+    }
+
+    @Override
+    public String uploadProfile(User user, MultipartFile avtar) {
+        if (!Objects.requireNonNull(avtar.getContentType()).startsWith("image/")) {
+            throw new OperationNotPermittedException("You can upload only image as the avtar!");
+        }
+        final String fileExtension = getFileExtension(avtar.getOriginalFilename());
+        final String avtarPath = profileBaseUrl + separator + user.getUsername() + "." + fileExtension;
+        Path targetPath = Paths.get(avtarPath);
+        try {
+            Files.write(targetPath, avtar.getBytes());
+            return targetPath.toString();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to upload the avtar, try again!");
+        }
+    }
+
+    @Override
+    public boolean deleteFile(String previousAvtar) {
+        try {
+            Files.delete(Paths.get(previousAvtar));
+        } catch (IOException e) {
+            return false;
+        }
+        return true;
     }
 
     // todo -> Return the image preview

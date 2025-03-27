@@ -44,18 +44,18 @@ public interface UserRepository extends JpaRepository<User, String> {
     @Query("""
             SELECT user
             FROM User user
-            JOIN FETCH user.followers
+            LEFT JOIN FETCH user.followers
             WHERE user.id = :userId
             """)
-    List<User> findFollowersWithDetails(@Param("userId") String userId);
+    Optional<User> findFollowersWithDetails(@Param("userId") String userId);
 
     @Query("""
             SELECT user
             FROM User user
-            JOIN FETCH user.following
+            LEFT JOIN FETCH user.following
             WHERE user.id = :userId
             """)
-    List<User> findFollowingsWithDetails(@Param("userId") String userId);
+    Optional<User> findFollowingsWithDetails(@Param("userId") String userId);
 
     @Query("""
             SELECT user

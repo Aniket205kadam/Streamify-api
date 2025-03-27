@@ -196,6 +196,38 @@ public class StoryService {
         storyRepository.save(story);
     }
 
+    public PageResponse<StoryViewDto> findAllStoryViewer(String storyId, Authentication connectedUser, int page, int size) {
+        User user = (User) connectedUser.getPrincipal();
+        Story story = getStoryById(storyId);
+        // only story owner can see the views on the story
+        if (!story.getUser().getId().equals(user.getId())) {
+            throw new OperationNotPermittedException("You are not the story owner, so you can't read the replies");
+        }
+        Pageable pageable = PageRequest.of(page, size, Sort.by("viewedAt").ascending());
+        Page<StoryView> storyViews = storyViewRepository.findAllStoryViews(pageable, story.getId());
+        List<StoryViewDto> views = storyViews
+                .stream()
+                .map(mapper::toStoryViewDto)
+                .toList();
+        return PageResponse.<StoryViewDto>builder()
+                // filter out the owner of the story, if exists
+                .content(views
+                        .stream()
+                        .filter(view ->
+                                !view.getViewer()
+                                        .getId()
+                                        .equals(user.getId())
+                        ).toList()
+                )
+                .number(storyViews.getNumber())
+                .size(storyViews.getSize())
+                .totalPages(storyViews.getTotalPages())
+                .totalElements(storyViews.getTotalElements())
+                .first(storyViews.isFirst())
+                .last(storyViews.isLast())
+                .build();
+    }
+
     public PageResponse<StoryReplyResponse> findAllStoryReplies(String storyId, Authentication connectedUser, int page, int size) {
         User user = (User) connectedUser.getPrincipal();
         Story story = getStoryById(storyId);
@@ -319,6 +351,17 @@ public class StoryService {
             throw new OperationNotPermittedException("You are not the story owner, so you can't see the story liked users");
         }
         Set<UserDto> likedUsers = story.getLikedUsers();
-        return likedUsers.stream().toList();
+        Set<User> orgUsers = new HashSet<>();
+        // optimized later
+        for (UserDto u : likedUsers) {
+            orgUsers.add(userRepository
+                    .findById(u.getId())
+                    .orElseThrow(() ->
+                            new EntityNotFoundException("User is not found with Id: " + u.getId())
+                    ));
+        }
+        return orgUsers
+                .stream()
+                .map(mapper::toUserDto).toList();
     }
 }

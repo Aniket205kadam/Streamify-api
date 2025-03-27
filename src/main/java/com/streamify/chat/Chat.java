@@ -11,6 +11,7 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 
 @Getter
@@ -54,6 +55,14 @@ public class Chat {
     }
 
     @Transient
+    public String getChatUsername(String senderId) {
+        if (recipient.getId().equals(senderId)) {
+            return sender.getUsername();
+        }
+        return recipient.getUsername();
+    }
+
+    @Transient
     public String getTargetChatName(String senderId) {
         if (sender.getId().equals(senderId)) {
             return sender.getFullName();
@@ -73,21 +82,40 @@ public class Chat {
     @Transient
     public String getLastMessage() {
         if (this.messages != null && !this.messages.isEmpty()) {
-            if (messages.getFirst().getType() != MessageType.TEXT) {
+            Message lastMessage = this.messages.stream()
+                    .max((m1, m2) -> m1.getCreatedDate().compareTo(m2.getCreatedDate()))
+                    .orElse(null);
+            if (lastMessage.getType() != MessageType.TEXT) {
                 return "Attachment";
             }
-            return this.messages.getFirst().getContent();
+            return lastMessage.getContent();
         }
         return null;
     }
 
     @Transient
+    public String getLastMessageSender() {
+        if (this.messages == null || this.messages.isEmpty()) {
+            return null;
+        }
+
+        return this.messages.stream()
+                .max(Comparator.comparing(Message::getCreatedDate))
+                .map(Message::getSenderId)
+                .orElse(null);
+    }
+
+
+    @Transient
     public LocalDateTime getLastMessageTime() {
         if (this.messages != null && !this.messages.isEmpty()) {
+            Message lastMessage = this.messages.stream()
+                    .max((m1, m2) -> m1.getCreatedDate().compareTo(m2.getCreatedDate()))
+                    .orElse(null);
             return (
-                    this.messages.getFirst().getLastModifiedDate() != null
-                        ? this.messages.getFirst().getLastModifiedDate()
-                        : this.messages.getFirst().getCreatedDate()
+                    lastMessage.getLastModifiedDate() != null
+                        ? this.messages.getLast().getLastModifiedDate()
+                        : this.messages.getLast().getCreatedDate()
             );
         }
         return null;

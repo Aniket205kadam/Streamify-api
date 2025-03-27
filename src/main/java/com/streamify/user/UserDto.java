@@ -15,5 +15,9 @@ public class UserDto {
     private String fullName;
     private int followerCount;
     private Boolean isFollowedByCurrentUser;
+
+    @Deprecated
     private String avtarUrl;
+
+    private String avtar;
 }

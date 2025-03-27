@@ -8,6 +8,7 @@ import com.streamify.notification.Notification;
 import com.streamify.notification.NotificationService;
 import com.streamify.notification.NotificationType;
 import com.streamify.user.User;
+import com.streamify.user.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -20,23 +21,32 @@ public class MessageService {
     private final ChatRepository chatRepository;
     private final NotificationService notificationService;
     private final MediaService mediaService;
+    private final UserRepository userRepository;
 
-    public MessageService(MessageRepository messageRepository, ChatRepository chatRepository, NotificationService notificationService, MediaService mediaService) {
+    public MessageService(MessageRepository messageRepository, ChatRepository chatRepository, NotificationService notificationService, MediaService mediaService, UserRepository userRepository) {
         this.messageRepository = messageRepository;
         this.chatRepository = chatRepository;
         this.notificationService = notificationService;
         this.mediaService = mediaService;
+        this.userRepository = userRepository;
+    }
+
+    private User findUserByUsername(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new EntityNotFoundException("User is not found with username: " + username));
     }
 
     @Transactional
     public void saveMessage(MessageRequest request) {
         Chat chat = chatRepository.findById(request.getChatId())
                 .orElseThrow(() -> new EntityNotFoundException("Chat not found"));
+        User sender = findUserByUsername(request.getSenderUsername());
+        User receiver = findUserByUsername(request.getReceiverUsername());
         Message message = new Message();
         message.setContent(request.getContent());
         message.setChat(chat);
-        message.setSenderId(request.getSenderId());
-        message.setReceiverId(request.getReceiverId());
+        message.setSenderId(sender.getId());
+        message.setReceiverId(receiver.getId());
         message.setType(request.getType());
         message.setState(MessageState.SENT);
         messageRepository.save(message);
@@ -45,12 +55,12 @@ public class MessageService {
                 .chatId(chat.getId())
                 .messageType(request.getType())
                 .content(request.getContent())
-                .senderId(request.getSenderId())
-                .receiverId(request.getReceiverId())
+                .senderId(sender.getId())
+                .receiverId(receiver.getId())
                 .type(NotificationType.MESSAGE)
                 .chatName(chat.getTargetChatName(message.getSenderId()))
                 .build();
-        notificationService.sendNotification(request.getReceiverId(), notification);
+        notificationService.sendNotification(receiver.getId(), notification);
     }
 
     public void uploadMediaMessage(String chatId, MultipartFile file, Authentication connectedUser) {

@@ -29,6 +29,7 @@ public class SecurityConfig {
         return security
                 .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
+                //.csrf(csrf -> csrf.ignoringRequestMatchers("/ws/**"))
                 .authorizeHttpRequests(request ->
                     request.requestMatchers(
                             "/auth/**",
@@ -41,9 +42,7 @@ public class SecurityConfig {
                                     "/swagger-ui/**",
                                     "/webjars/**",
                                     "/swagger-ui.html",
-                                    "/ws/**",
-                                    "/ws/info/**",
-                                    "/ws/websocket/**"
+                                    "/ws/**"
                     )
                             .permitAll()
                             .anyRequest()

@@ -1,9 +1,12 @@
 package com.streamify.user;
 
+import com.streamify.Storage.MediaService;
 import com.streamify.common.Mapper;
 import com.streamify.common.PageResponse;
 import com.streamify.story.StoryRepository;
 import jakarta.persistence.EntityNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -12,21 +15,24 @@ import org.springframework.lang.NonNull;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
-import java.time.Month;
 import java.util.*;
 
 @Service
 public class UserService {
+    private static final Logger log = LoggerFactory.getLogger(UserService.class);
     private final UserRepository userRepository;
     private final Mapper mapper;
     private final StoryRepository storyRepository;
+    private final MediaService mediaService;
 
-    public UserService(UserRepository userRepository, Mapper mapper, StoryRepository storyRepository) {
+    public UserService(UserRepository userRepository, Mapper mapper, StoryRepository storyRepository, MediaService mediaService) {
         this.userRepository = userRepository;
         this.mapper = mapper;
         this.storyRepository = storyRepository;
+        this.mediaService = mediaService;
     }
 
     public User findUserById(@NonNull String userId) {
@@ -70,6 +76,8 @@ public class UserService {
         Objects.requireNonNull(connectedUser, "Connected user must not be null");
         User user = (User) connectedUser.getPrincipal();
         return userRepository.findFollowersWithDetails(user.getId())
+                .orElseThrow(() -> new EntityNotFoundException("User is not found with Id: " + user.getId()))
+                .getFollowers()
                 .stream()
                 .map(mapper::toUserDto)
                 .toList();
@@ -80,6 +88,8 @@ public class UserService {
         Objects.requireNonNull(connectedUser, "Connected user must not be null");
         User user = (User) connectedUser.getPrincipal();
         return userRepository.findFollowingsWithDetails(user.getId())
+                .orElseThrow(() -> new EntityNotFoundException("User is not found with Id: " + user.getId()))
+                .getFollowing()
                 .stream()
                 .map(mapper::toUserDto)
                 .toList();
@@ -252,5 +262,63 @@ public class UserService {
         String month = createAt.getMonth().toString();
         String year = String.valueOf(createAt.getYear());
         return (month.charAt(0) + month.substring(1).toLowerCase()) + " " + year;
+    }
+
+    public Boolean isMutualFriend(String friendUsername, Authentication connectedUser) {
+        User currentUser = (User) connectedUser.getPrincipal();
+        User friend = userRepository.findByUsername(friendUsername)
+                .orElseThrow(() -> new EntityNotFoundException("User is not find with username: " + friendUsername));
+        return currentUser.getFollowing().stream().anyMatch(u -> u.getId().equals(friend.getId()))
+                &&
+                currentUser.getFollowers().stream().anyMatch(u -> u.getId().equals(friend.getId()));
+    }
+
+    @Transactional
+    public String uploadProfile(Authentication connectedUser, MultipartFile avtar) throws Exception {
+        User user = (User) connectedUser.getPrincipal();
+        String avtarUrl = mediaService.uploadProfile(user, avtar);
+        if (avtarUrl.isBlank() || avtarUrl.isEmpty()) {
+            throw new Exception("Failed to save avtar, try again!");
+        }
+        String previousAvtar = user.getProfilePictureUrl();
+        user.setProfilePictureUrl(avtarUrl);
+        User savedUser = userRepository.save(user);
+        return mapper.toUserDto(savedUser).getAvtar();
+    }
+
+    @Transactional
+    public String removeProfile(Authentication connectedUser) throws Exception {
+        User user = (User) connectedUser.getPrincipal();
+        String previousAvtar = user.getProfilePictureUrl();
+
+        // now delete previous avtar
+        if (previousAvtar != null) {
+            boolean status = mediaService.deleteFile(previousAvtar);
+            if (status) {
+                log.info("Remove the previous profile of {} user", user.getUsername());
+            } else {
+                //todo -> also here the email to admin
+                log.warn("Failed to remove previous profile of {} user", user.getUsername());
+                log.warn("Avatar url is: {}", previousAvtar);
+                throw new Exception("Something went wrong we are failed to remove profile!");
+            }
+        }
+        // after deleting the file we are also remove from database
+        user.setProfilePictureUrl(null);
+        User savedUser = userRepository.save(user);
+        // here we return the default profile in Base64 form
+        return mapper
+                .toUserDto(savedUser)
+                .getAvtar();
+    }
+
+    @Transactional
+    public void updateAccount(UpdateRequest request, Authentication connectedUser) {
+        User user = (User) connectedUser.getPrincipal();
+        user.setWebsite(request.getWebsite());
+        user.setBio(request.getBio());
+        user.setGender(request.getGender());
+        // update user
+        userRepository.save(user);
     }
 }
