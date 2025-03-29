@@ -1,9 +1,13 @@
 package com.streamify.config;
 
+import com.streamify.security.JwtService;
+import com.streamify.security.UserDetailsServiceImpl;
+import com.streamify.ws.AuthChannelInterceptor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.domain.AuditorAware;
 import org.springframework.http.HttpHeaders;
+import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -71,4 +75,9 @@ public class BeanConfig {
     public AuditorAware<String> auditorAware() {
         return new ApplicationAuditAware();
     }
+
+    /*@Bean
+    public ChannelInterceptor authChannelInterceptor() {
+        return new AuthChannelInterceptor();
+    }*/
 }

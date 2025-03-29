@@ -85,8 +85,14 @@ public class Chat {
             Message lastMessage = this.messages.stream()
                     .max((m1, m2) -> m1.getCreatedDate().compareTo(m2.getCreatedDate()))
                     .orElse(null);
-            if (lastMessage.getType() != MessageType.TEXT) {
-                return "Attachment";
+            if (lastMessage.getType() == MessageType.IMAGE) {
+                return "Image";
+            } else if (lastMessage.getType() == MessageType.VIDEO){
+                return "VIDEO";
+            } else if (lastMessage.getType() == MessageType.AUDIO){
+                return "AUDIO";
+            } else if (lastMessage.getType() == MessageType.GIF){
+                return "GIF";
             }
             return lastMessage.getContent();
         }

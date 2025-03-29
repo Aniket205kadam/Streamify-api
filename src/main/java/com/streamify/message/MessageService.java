@@ -4,6 +4,7 @@ import com.streamify.Storage.FileUtils;
 import com.streamify.Storage.MediaService;
 import com.streamify.chat.Chat;
 import com.streamify.chat.ChatRepository;
+import com.streamify.exception.OperationNotPermittedException;
 import com.streamify.notification.Notification;
 import com.streamify.notification.NotificationService;
 import com.streamify.notification.NotificationType;
@@ -38,6 +39,7 @@ public class MessageService {
 
     @Transactional
     public void saveMessage(MessageRequest request) {
+        System.out.println("Request: " + request.getType());
         Chat chat = chatRepository.findById(request.getChatId())
                 .orElseThrow(() -> new EntityNotFoundException("Chat not found"));
         User sender = findUserByUsername(request.getSenderUsername());
@@ -74,7 +76,16 @@ public class MessageService {
         message.setReceiverId(receiverId);
         message.setSenderId(senderId);
         message.setState(MessageState.SENT);
-        message.setType(MessageType.IMAGE);
+
+        // check the type of file
+        if (file.getContentType().startsWith("image")) {
+            message.setType(MessageType.IMAGE);
+        } else if (file.getContentType().startsWith("video")) {
+            message.setType(MessageType.VIDEO);
+        } else {
+            throw new OperationNotPermittedException("Only Video and Image are allowed");
+        }
+
         message.setMediaFilePath(filePath);
         message.setChat(chat);
         messageRepository.save(message);

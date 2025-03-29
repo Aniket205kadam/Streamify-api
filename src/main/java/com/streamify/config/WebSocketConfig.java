@@ -3,6 +3,7 @@ package com.streamify.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.streamify.security.JwtService;
 import com.streamify.security.JwtWebSocketInterceptor;
+import com.streamify.ws.JwtHandshakeInterceptor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
@@ -26,20 +27,18 @@ import java.util.List;
 @EnableWebSocketMessageBroker
 @Order(Ordered.HIGHEST_PRECEDENCE + 99)
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
-    private final JwtService jwtService;
-    private final UserDetailsService userDetailsService;
+    private final JwtHandshakeInterceptor jwtHandshakeInterceptor;
 
-    public WebSocketConfig(JwtService jwtService, UserDetailsService userDetailsService) {
-        this.jwtService = jwtService;
-        this.userDetailsService = userDetailsService;
+    public WebSocketConfig(JwtHandshakeInterceptor jwtHandshakeInterceptor) {
+        this.jwtHandshakeInterceptor = jwtHandshakeInterceptor;
     }
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry
                 .addEndpoint("/ws")
-                .setAllowedOrigins("http://localhost:5173")
-                .addInterceptors(new JwtWebSocketInterceptor(jwtService, userDetailsService))
+                .addInterceptors(jwtHandshakeInterceptor)
+                .setAllowedOrigins("*")
                 .withSockJS();
     }
 
