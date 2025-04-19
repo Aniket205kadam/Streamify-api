@@ -1,5 +1,6 @@
 package com.streamify.story;
 
+import com.streamify.Storage.FileUtils;
 import com.streamify.Storage.MediaService;
 import com.streamify.common.Mapper;
 import com.streamify.common.PageResponse;
@@ -284,11 +285,15 @@ public class StoryService {
         storyRepository.deleteById(storyId);
     }
 
+    private String getImageType(String fileName) {
+        if (fileName == null || fileName.isEmpty())
+            throw new RuntimeException("Filename is needed to find the file extensions!");
+        return fileName.substring(fileName.lastIndexOf("."));
+    }
+
     public List<FollowingsStoryResponse> findAllFollowingsStories(Authentication connectedUser) {
         User user = (User) connectedUser.getPrincipal();
         List<FollowingsStoryResponse> followingsStoryResponses = new ArrayList<>();
-
-        System.out.println("Followings count: " + user.getFollowing().size());
 
         for (User following : user.getFollowing()) {
             List<Story> followingsStories = storyRepository.findAllValidUserStories(following.getId());
@@ -299,11 +304,20 @@ public class StoryService {
                                 .anyMatch(view -> view.getViewer().equals(user))
                         );
 
+                String avtar;
+                if (following.getProfilePictureUrl() == null) {
+                    avtar = "data:image/" + "png" + ";base64," + Base64.getEncoder().encodeToString(FileUtils.readFileFromLocation("D:\\Spring Boot Project\\streamify\\profile-assets\\common-avatar\\no-profile-image.png"));
+                } else {
+                    avtar = "data:image/" + getImageType(following.getProfilePictureUrl()) + ";base64," + Base64.getEncoder().encodeToString(FileUtils.readFileFromLocation(following.getProfilePictureUrl()));
+                }
+
                 followingsStoryResponses.add(FollowingsStoryResponse.builder()
-                        .id(following.getId())
-                        .username(following.getUsername())
-                        .allStoriesSeen(isViewAllStories)
-                        .build());
+                                .id(following.getId())
+                                .username(following.getUsername())
+                                .allStoriesSeen(isViewAllStories)
+                                .avtar(avtar)
+                                .build()
+                );
             }
         }
         return followingsStoryResponses;

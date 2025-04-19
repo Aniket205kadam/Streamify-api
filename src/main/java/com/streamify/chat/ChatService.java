@@ -46,7 +46,6 @@ public class ChatService {
 
     public List<ChatResponse> getChatsByReceiver(Authentication connectedUser) {
         final String userId = ((User) connectedUser.getPrincipal()).getId();
-        System.out.println("User ID: " + userId);
         return chatRepository.findChatBySenderId(userId)
                 .stream()
                 .map(chat -> mapper.toChatResponse(chat, userId))

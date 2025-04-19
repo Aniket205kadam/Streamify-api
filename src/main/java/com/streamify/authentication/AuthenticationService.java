@@ -1,5 +1,6 @@
 package com.streamify.authentication;
 
+import com.streamify.Storage.FileUtils;
 import com.streamify.exception.OperationNotPermittedException;
 import com.streamify.mail.*;
 import com.streamify.phone.PhoneService;
@@ -180,6 +181,12 @@ public class AuthenticationService {
         return user.getId();
     }
 
+    private String getImageType(String fileName) {
+        if (fileName == null || fileName.isEmpty())
+            throw new RuntimeException("Filename is needed to find the file extensions!");
+        return fileName.substring(fileName.lastIndexOf("."));
+    }
+
     public AuthenticationResponse authenticate(AuthenticationRequest request) {
         User user = null;
         Map<String, Object> claims = new HashMap<>();
@@ -208,11 +215,19 @@ public class AuthenticationService {
         user.setLastLoginAt(LocalDateTime.now());
         userRepository.save(user);
 
+        String avtar;
+        if (user.getProfilePictureUrl() == null) {
+            avtar = "data:image/" + "png" + ";base64," + Base64.getEncoder().encodeToString(FileUtils.readFileFromLocation("D:\\Spring Boot Project\\streamify\\profile-assets\\common-avatar\\no-profile-image.jpg"));
+        } else {
+            avtar = "data:image/" + getImageType(user.getProfilePictureUrl()) + ";base64," + Base64.getEncoder().encodeToString(FileUtils.readFileFromLocation(user.getProfilePictureUrl()));
+        }
+
         return AuthenticationResponse
                 .builder()
                 .token(jwtToken)
                 .username(user.getUsername())
                 .profileUrl(user.getProfilePictureUrl())
+                .avtar(avtar)
                 .createdAt(LocalDateTime.now())
                 .validateAt(new Date(System.currentTimeMillis() + jwtExpiration))
                 .build();

@@ -27,4 +27,15 @@ public class FileUtils {
             throw new OperationNotPermittedException("No file found or not readable!");
         }
     }
+
+    public static String getFileExtension(String filename) {
+        if (filename == null || filename.isEmpty()) {
+            return null;
+        }
+        int lastDotIdx = filename.lastIndexOf(".");
+        if (lastDotIdx == -1) {
+            return null;
+        }
+        return filename.substring(lastDotIdx + 1).toLowerCase();
+    }
 }

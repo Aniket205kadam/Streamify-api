@@ -1,12 +1,24 @@
 package com.streamify.common;
 
 import com.streamify.Storage.FileUtils;
+import com.streamify.aistudio.bot.Bot;
+import com.streamify.aistudio.bot.BotResponse;
+import com.streamify.aistudio.chat.BotChat;
+import com.streamify.aistudio.chat.BotChatResponse;
+import com.streamify.aistudio.chat.BotMessage;
+import com.streamify.aistudio.chat.BotMessageResponse;
 import com.streamify.chat.Chat;
 import com.streamify.chat.ChatResponse;
 import com.streamify.comment.Comment;
 import com.streamify.comment.CommentResponse;
+import com.streamify.ffmpeg.FfmpegService;
 import com.streamify.message.Message;
 import com.streamify.message.MessageResponse;
+import com.streamify.notification.UserNotification;
+import com.streamify.notification.UserNotificationResponse;
+import com.streamify.notification.UserNotificationType;
+import com.streamify.post.Post;
+import com.streamify.post.PostRepository;
 import com.streamify.story.StoryReply;
 import com.streamify.story.StoryReplyResponse;
 import com.streamify.story.StoryView;
@@ -15,20 +27,31 @@ import com.streamify.user.User;
 import com.streamify.user.UserDto;
 import com.streamify.user.UserRepository;
 import com.streamify.user.UserResponse;
+import jakarta.persistence.EntityNotFoundException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Base64;
 
 @Service
 public class Mapper {
     private final UserRepository userRepository;
+    private final PostRepository postRepository;
+    private final FfmpegService ffmpegService;
 
-    public Mapper(UserRepository userRepository) {
+    @Value("${application.file.upload.content-base-url.thumbnail}")
+    private String thumbnailUrl;
+
+    public Mapper(UserRepository userRepository, PostRepository postRepository, FfmpegService ffmpegService) {
         this.userRepository = userRepository;
+        this.postRepository = postRepository;
+        this.ffmpegService = ffmpegService;
     }
 
     public CommentResponse toCommentResponse(Comment comment) {
@@ -71,7 +94,7 @@ public class Mapper {
     public UserDto toUserDto(User user) {
         String avtar;
         if (user.getProfilePictureUrl() == null) {
-            avtar = "data:image/" + "png" + ";base64," + Base64.getEncoder().encodeToString(FileUtils.readFileFromLocation("D:\\Spring Boot Project\\streamify\\profile-assets\\common-avatar\\no-profile-image.png"));
+            avtar = "data:image/" + "png" + ";base64," + Base64.getEncoder().encodeToString(FileUtils.readFileFromLocation("D:\\Spring Boot Project\\streamify\\profile-assets\\common-avatar\\no-profile-image.jpg"));
         } else {
             avtar = "data:image/" + getImageType(user.getProfilePictureUrl()) + ";base64," + Base64.getEncoder().encodeToString(FileUtils.readFileFromLocation(user.getProfilePictureUrl()));
         }
@@ -188,4 +211,65 @@ public class Mapper {
                 .viewedAt(storyView.getViewedAt())
                 .build();
     }
+
+    public UserNotificationResponse toUserNotificationResponse(UserNotification userNotification) throws IOException, InterruptedException {
+        // this for only the posts
+        String notificationImage = null;
+        if (userNotification.getType() == UserNotificationType.LIKE) {
+            if (userNotification.getPostId() != null) {
+                Post post = postRepository.findById(userNotification.getPostId())
+                        .orElseThrow(() -> new EntityNotFoundException("Post is not found with ID: " + userNotification.getPostId()));
+                if (post.getPostMedia().getFirst().getType().startsWith("video/")) {
+                    Path targetPath = Paths.get(thumbnailUrl, post.getPostMedia().getFirst().getId() + ".jpg");
+                    Files.createDirectories(Paths.get(thumbnailUrl));
+                    ffmpegService.generateThumbnail(
+                            post.getPostMedia().getFirst().getMediaUrl(),
+                            targetPath.toString()
+                    );
+                    notificationImage = "data:image/jpg;base64," + Base64.getEncoder().encodeToString(FileUtils.readFileFromLocation(targetPath.toString()));
+                } else {
+                    notificationImage = "data:image/" + getImageType(post.getPostMedia().getFirst().getMediaUrl()) + ";base64," + Base64.getEncoder().encodeToString(FileUtils.readFileFromLocation(post.getPostMedia().getFirst().getMediaUrl()));
+                }
+            } else {
+                throw new RuntimeException("Post is needed for notification!");
+            }
+        }
+        return UserNotificationResponse.builder()
+                .id(userNotification.getId())
+                .sender(toUserDto(userNotification.getSender()))
+                .receiver(toUserDto(userNotification.getReceiver()))
+                .type(userNotification.getType())
+                .notificationImage(notificationImage)
+                .unseen(userNotification.isUnseen())
+                .createAt(userNotification.getCreatedAt())
+                .build();
+    }
+
+    public BotResponse toBotResponse(Bot bot, String avtar) {
+        return BotResponse.builder()
+                .id(bot.getId())
+                .name(bot.getFirstname() + " " + bot.getLastname())
+                .avtar("data:image/" + getImageType(avtar) + ";base64," + Base64.getEncoder().encodeToString(FileUtils.readFileFromLocation(avtar)))
+                .build();
+    }
+
+    public BotChatResponse toBotChatResponse(BotChat chat) {
+        return BotChatResponse.builder()
+                .id(chat.getId())
+                .chatName(chat.getChatName())
+                .bot(toBotResponse(chat.getBot(), chat.getBot().getAvtar()))
+                .build();
+    }
+
+    public BotMessageResponse toBotMessageResponse(BotMessage message) {
+        return BotMessageResponse.builder()
+                .id(message.getId())
+                .content(message.getContent())
+                .userId(message.getUserId())
+                .botId(message.getBotId())
+                .isBotMessage(message.isBotMessage())
+                .createdAt(message.getCreatedDate())
+                .build();
+    }
+
 }

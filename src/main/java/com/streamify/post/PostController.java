@@ -117,7 +117,7 @@ public class PostController {
     public ResponseEntity<Integer> likePost(
             @PathVariable("post-id") String postId,
             Authentication connectedUser
-    ) {
+    ) throws IOException, InterruptedException {
          return ResponseEntity
                  .status(HttpStatus.OK)
                  .body(postService.likePost(postId, connectedUser));

@@ -226,7 +226,6 @@ public class MediaServiceImpl implements MediaService {
             Path targetPath = Paths.get(thumbnailUrl, postMedia.getId() + ".jpg");
             Files.createDirectories(Paths.get(thumbnailUrl));
             if (Files.exists(targetPath)) {
-                System.out.println("This video path all ready exist");
                 Resource resource = new UrlResource(targetPath.normalize(). toUri());
                 if (resource.exists() && resource.isReadable()) {
                     return resource;

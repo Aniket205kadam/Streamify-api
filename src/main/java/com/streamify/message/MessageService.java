@@ -39,7 +39,6 @@ public class MessageService {
 
     @Transactional
     public void saveMessage(MessageRequest request) {
-        System.out.println("Request: " + request.getType());
         Chat chat = chatRepository.findById(request.getChatId())
                 .orElseThrow(() -> new EntityNotFoundException("Chat not found"));
         User sender = findUserByUsername(request.getSenderUsername());

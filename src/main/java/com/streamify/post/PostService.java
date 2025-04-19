@@ -1,22 +1,23 @@
 package com.streamify.post;
 
+import com.streamify.Storage.FileUtils;
 import com.streamify.Storage.MediaService;
 import com.streamify.Storage.MediaServiceImpl;
 import com.streamify.comment.CommentRepository;
 import com.streamify.common.PageResponse;
 import com.streamify.exception.OperationNotPermittedException;
 import com.streamify.ffmpeg.FfmpegService;
+import com.streamify.notification.UserNotification;
+import com.streamify.notification.UserNotificationRepository;
+import com.streamify.notification.UserNotificationType;
 import com.streamify.user.User;
 import com.streamify.user.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
-import org.springframework.core.io.InputStreamResource;
-import org.springframework.core.io.Resource;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.lang.NonNull;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -24,7 +25,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -37,6 +41,10 @@ public class PostService {
     private final UserRepository userRepository;
     private final CommentRepository commentRepository;
     private final FfmpegService ffmpegService;
+    private final UserNotificationRepository userNotificationRepository;
+
+    @Value("${application.file.upload.content-base-url.thumbnail}")
+    private String thumbnailUrl;
 
     public PostService(
             PostRepository postRepository,
@@ -44,7 +52,7 @@ public class PostService {
             PostMediaRepository postMediaRepository,
             PostMapper postMapper,
             UserRepository userRepository,
-            CommentRepository commentRepository, FfmpegService ffmpegService
+            CommentRepository commentRepository, FfmpegService ffmpegService, UserNotificationRepository userNotificationRepository
     ) {
         this.postRepository = postRepository;
         this.mediaService = mediaService;
@@ -53,6 +61,7 @@ public class PostService {
         this.userRepository = userRepository;
         this.commentRepository = commentRepository;
         this.ffmpegService = ffmpegService;
+        this.userNotificationRepository = userNotificationRepository;
     }
 
     private Post findPostById(@NonNull String postId) {
@@ -204,8 +213,30 @@ public class PostService {
         return true;
     }
 
+    private String getImageExtension(String url) {
+        return url.substring(url.lastIndexOf("."));
+    }
+
+    /*private String getPostFirstImage(@NonNull String postId) throws IOException, InterruptedException {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new EntityNotFoundException("Post is not found with ID: " + postId));
+        // if first post is the video then create thumbnail
+        if (post.getPostMedia().getFirst().getType().startsWith("video/")) {
+            Path targetPath = Paths.get(thumbnailUrl, post.getPostMedia().getFirst().getId() + ".jpg");
+            Files.createDirectories(Paths.get(thumbnailUrl));
+            ffmpegService.generateThumbnail(
+                    post.getPostMedia().getFirst().getMediaUrl(),
+                    targetPath.toString()
+            );
+            return "data:image/jpg;base64," + Base64.getEncoder()
+                    .encodeToString(FileUtils.readFileFromLocation(targetPath.toString()));
+        }
+        return "data:image/" + getImageExtension(post.getPostMedia().getFirst().getMediaUrl()) + ";base64," + Base64.getEncoder()
+                .encodeToString(FileUtils.readFileFromLocation(post.getPostMedia().getFirst().getMediaUrl()));
+    }
+*/
     @Transactional
-    public Integer likePost(String postId, Authentication connectedUser) {
+    public Integer likePost(String postId, Authentication connectedUser) throws IOException, InterruptedException {
         User user = (User) connectedUser.getPrincipal();
         Post post = postRepository.findWithLikesDetailsById(postId)
                 .orElseThrow(() -> new EntityNotFoundException("Post is not found with ID: " + postId));
@@ -216,6 +247,21 @@ public class PostService {
         } else {
             // Like the post
             prevLikes.add(user);
+
+            // send notification
+            // prevent the user send itself notification
+            if (!user.getId().equals(post.getUser().getId())) {
+                UserNotification notification = UserNotification.builder()
+                        .sender(user)
+                        .receiver(post.getUser())
+                        .postId(post.getId())
+                        .type(UserNotificationType.LIKE)
+                        .unseen(true)
+                        .notificationImage(post.getPostMedia().getFirst().getMediaUrl())
+                        .createdAt(LocalDateTime.now())
+                        .build();
+                userNotificationRepository.save(notification);
+            }
         }
         // inc and dec the like count
         post.setLikeCount(prevLikes.size());

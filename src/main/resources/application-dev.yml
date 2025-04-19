@@ -18,6 +18,14 @@ spring:
     database: POSTGRESQL
     database-platform: org.hibernate.dialect.PostgreSQLDialect
 
+  ai:
+    ollama:
+      base-url: http://localhost:11434
+      chat:
+        options:
+          model: gemma:2b
+          temperature: 0.7
+
   mail:
     host: localhost
     port: 1025
@@ -55,3 +63,4 @@ application:
         temp: ./temp
         thumbnail: ./thumbnail
         chat: ./chat-assets
+        bot: ./bot-avtar

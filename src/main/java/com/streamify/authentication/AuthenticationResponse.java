@@ -13,7 +13,10 @@ import java.util.Date;
 public class AuthenticationResponse {
     private String token;
     private String username;
+
+    @Deprecated
     private String profileUrl;
+    private String avtar;
     private LocalDateTime createdAt;
     private Date validateAt;
 }
