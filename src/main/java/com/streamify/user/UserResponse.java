@@ -14,6 +14,7 @@ public class UserResponse {
     private String bio;
     private String profilePictureUrl;
     private String website;
+    private String avtar;
     private String gender;
     private int followerCount;
     private int followingCount;

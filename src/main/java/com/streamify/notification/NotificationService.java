@@ -47,4 +47,34 @@ public class NotificationService {
                 })
                 .toList();
     }
+
+    public void seenNotification(Authentication connectedUser) {
+        User user = (User) connectedUser.getPrincipal();
+        List<UserNotification> notifications = repository.findAllUnseenNotification(user.getId());
+        notifications.stream().forEach(notification -> {
+            notification.setUnseen(false);
+            repository.save(notification);
+        });
+    }
+
+    public List<UserNotificationResponse> getSeenNotification(Authentication connectedUser) {
+        User user = (User) connectedUser.getPrincipal();
+        List<UserNotification> notifications = repository.findSeenNotification(user.getId());
+        return notifications
+                .stream()
+                .map(notification -> {
+                    try {
+                        return mapper.toUserNotificationResponse(notification);
+                    } catch (IOException | InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                })
+                .toList();
+    }
+
+    public Boolean isUnseenNotificationPresent(Authentication connectedUser) {
+        User user = (User) connectedUser.getPrincipal();
+        return !repository
+                .findAllUnseenNotification(user.getId()).isEmpty();
+    }
 }

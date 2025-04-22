@@ -136,6 +136,18 @@ public class Mapper {
     }
 
     public UserResponse toUserResponse(User request) {
+        byte[] content = FileUtils
+                .readFileFromLocation(
+                        request.getProfilePictureUrl() == null
+                                ? "D:\\Spring Boot Project\\streamify\\profile-assets\\common-avatar\\no-profile-image.jpg"
+                                : request.getProfilePictureUrl()
+                );
+        String extension = "";
+        if (request.getProfilePictureUrl() != null) {
+            extension = request.getProfilePictureUrl().substring(request.getProfilePictureUrl().lastIndexOf("."));
+        } else {
+            extension = "jpg";
+        }
         return UserResponse.builder()
                 .id(request.getId())
                 .username(request.getUsername())
@@ -144,6 +156,7 @@ public class Mapper {
                 .profilePictureUrl(request.getProfilePictureUrl())
                 .website(request.getWebsite())
                 .gender(request.getGender())
+                .avtar("data:image/" + extension + ";base64," + Base64.getEncoder().encodeToString(content))
                 .followerCount(request.getFollowerCount())
                 .followingCount(request.getFollowingCount())
                 .postsCount(request.getPostsCount())
@@ -221,12 +234,18 @@ public class Mapper {
                         .orElseThrow(() -> new EntityNotFoundException("Post is not found with ID: " + userNotification.getPostId()));
                 if (post.getPostMedia().getFirst().getType().startsWith("video/")) {
                     Path targetPath = Paths.get(thumbnailUrl, post.getPostMedia().getFirst().getId() + ".jpg");
-                    Files.createDirectories(Paths.get(thumbnailUrl));
-                    ffmpegService.generateThumbnail(
-                            post.getPostMedia().getFirst().getMediaUrl(),
-                            targetPath.toString()
-                    );
-                    notificationImage = "data:image/jpg;base64," + Base64.getEncoder().encodeToString(FileUtils.readFileFromLocation(targetPath.toString()));
+
+                    if (Files.exists(targetPath)) {
+                        notificationImage = "data:image/jpg;base64," + Base64.getEncoder().encodeToString(FileUtils.readFileFromLocation(targetPath.toString()));
+                    } else {
+                        Files.createDirectories(Paths.get(thumbnailUrl));
+                        ffmpegService.generateThumbnail(
+                                post.getPostMedia().getFirst().getMediaUrl(),
+                                targetPath.toString()
+                        );
+                        System.out.println("Filename: " + targetPath.toString());
+                        notificationImage = "data:image/jpg;base64," + Base64.getEncoder().encodeToString(FileUtils.readFileFromLocation(targetPath.toString()));
+                    }
                 } else {
                     notificationImage = "data:image/" + getImageType(post.getPostMedia().getFirst().getMediaUrl()) + ";base64," + Base64.getEncoder().encodeToString(FileUtils.readFileFromLocation(post.getPostMedia().getFirst().getMediaUrl()));
                 }

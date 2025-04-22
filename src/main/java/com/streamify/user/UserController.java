@@ -94,6 +94,16 @@ public class UserController {
                 .body(userService.followUser(followingId, connectedUser));
     }
 
+    @PatchMapping("/unfollow/{unfollowing-id}")
+    public ResponseEntity<String> unfollowUser(
+            @PathVariable("unfollowing-id") String unfollowingId,
+            Authentication connectedUser
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(userService.unFollowUser(unfollowingId, connectedUser));
+    }
+
     @GetMapping("/isFollowing/{user-id}")
     public ResponseEntity<Boolean> isFollowingUser(
             @PathVariable("user-id") String userId,
@@ -113,22 +123,22 @@ public class UserController {
                 .body(userService.findUserById(userId));
     }
 
-    @GetMapping("/followers")
+    @GetMapping("/{username}/followers")
     public ResponseEntity<List<UserDto>> findMyFollowers(
-            Authentication connectedUser
+            @PathVariable("username") String username
     ) {
         return ResponseEntity
                 .status(HttpStatus.OK)
-                .body(userService.findUserFollowers(connectedUser));
+                .body(userService.findUserFollowers(username));
     }
 
-    @GetMapping("/followings")
+    @GetMapping("/{username}/followings")
     public ResponseEntity<List<UserDto>> findMyFollowings(
-            Authentication connectedUser
+            @PathVariable("username") String username
     ) {
         return ResponseEntity
                 .status(HttpStatus.OK)
-                .body(userService.findUserFollowings(connectedUser));
+                .body(userService.findUserFollowings(username));
     }
 
     @GetMapping("/{user-id}/posts")

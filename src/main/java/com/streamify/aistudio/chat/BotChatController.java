@@ -28,7 +28,7 @@ public class BotChatController {
                 .body(service.createChat(botId, connectedUser));
     }
 
-    @GetMapping
+    @GetMapping("/c/my-chats")
     public ResponseEntity<List<BotChatResponse>> getChats(Authentication connectedUser) {
         return ResponseEntity
                 .status(HttpStatus.OK)

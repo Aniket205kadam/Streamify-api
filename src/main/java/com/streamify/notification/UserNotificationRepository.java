@@ -14,6 +14,16 @@ public interface UserNotificationRepository extends JpaRepository<UserNotificati
             FROM UserNotification notification
             WHERE notification.unseen = true
             AND notification.receiver.id = :userId
+            ORDER BY notification.createdAt DESC
             """)
     List<UserNotification> findAllUnseenNotification(@Param("userId") String userId);
+
+    @Query("""
+            SELECT notification
+            FROM UserNotification notification
+            WHERE notification.unseen = false
+            AND notification.receiver.id = :userId
+            ORDER BY notification.createdAt DESC
+            """)
+    List<UserNotification> findSeenNotification(@Param("userId") String userId);
 }

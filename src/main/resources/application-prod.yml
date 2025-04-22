@@ -1,0 +1,68 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/streamify_dev
+    username: postgres
+    password: postgres-password
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      max-lifetime: 60000
+      idle-timeout: 30000
+      connection-timeout: 30000
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+    database: POSTGRESQL
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+  ai:
+    ollama:
+      base-url: http://localhost:11434
+      chat:
+        options:
+          model: gemma:2b
+          temperature: 0.7
+
+  mail:
+    host: smtp.gmail.com
+    port: 465
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true
+            trust: "*"
+      auth: true
+      starttls:
+        enable: true
+      protocol: smtp
+
+twilio:
+  account_sid: ${TWILIO.ACCOUNT_SID}
+  auth_token: ${TWILIO.AUTHENTICATION_TOKEN}
+  phone_number: ${TWILIO.PHONE_NUMBER}
+
+application:
+  mailing:
+    app-mail: noreply@streamify.com
+    activation-url: http://localhost:5173/accounts/activate-account
+  Security:
+    jwt:
+      expiration: 259200000
+      secret-key: ${APP_SECRET_KEY}
+  file:
+    upload:
+      content-base-url:
+        post: ./post-assets
+        story: ./story-assets
+        profile: ./profile-assets
+        temp: ./temp
+        thumbnail: ./thumbnail
+        chat: ./chat-assets
+        bot: ./bot-avtar

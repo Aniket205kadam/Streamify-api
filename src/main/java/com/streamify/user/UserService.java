@@ -3,8 +3,12 @@ package com.streamify.user;
 import com.streamify.Storage.MediaService;
 import com.streamify.common.Mapper;
 import com.streamify.common.PageResponse;
+import com.streamify.notification.UserNotification;
+import com.streamify.notification.UserNotificationRepository;
+import com.streamify.notification.UserNotificationType;
 import com.streamify.story.StoryRepository;
 import jakarta.persistence.EntityNotFoundException;
+import org.antlr.v4.runtime.misc.LogManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -18,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 
 @Service
@@ -27,12 +32,14 @@ public class UserService {
     private final Mapper mapper;
     private final StoryRepository storyRepository;
     private final MediaService mediaService;
+    private final UserNotificationRepository userNotificationRepository;
 
-    public UserService(UserRepository userRepository, Mapper mapper, StoryRepository storyRepository, MediaService mediaService) {
+    public UserService(UserRepository userRepository, Mapper mapper, StoryRepository storyRepository, MediaService mediaService, UserNotificationRepository userNotificationRepository) {
         this.userRepository = userRepository;
         this.mapper = mapper;
         this.storyRepository = storyRepository;
         this.mediaService = mediaService;
+        this.userNotificationRepository = userNotificationRepository;
     }
 
     public User findUserById(@NonNull String userId) {
@@ -68,13 +75,47 @@ public class UserService {
         // Save both users to update both sides of the relationship
         userRepository.save(user);
         userRepository.save(followUser);
+
+        // send notification
+        // prevent the user send itself notification
+        UserNotification notification = UserNotification.builder()
+                .sender(user)
+                .receiver(followUser)
+                .type(UserNotificationType.FOLLOWING)
+                .unseen(true)
+                .notificationImage("")
+                .createdAt(LocalDateTime.now())
+                .build();
+        userNotificationRepository.save(notification);
         return "Followed " + followUser.getUsername();
     }
 
     @Transactional
-    public List<UserDto> findUserFollowers(Authentication connectedUser) {
-        Objects.requireNonNull(connectedUser, "Connected user must not be null");
+    public String unFollowUser(String unFollowingId, Authentication connectedUser) {
         User user = (User) connectedUser.getPrincipal();
+        User unFollowUser = findUserById(unFollowingId);
+
+        // Add user to followUser's followers list
+        int followerCount = unFollowUser.getFollowers().size();
+        unFollowUser.getFollowers().remove(user);
+        unFollowUser.setFollowerCount(followerCount - 1);
+
+        // Add followUser to user's following list
+        int followingCount = user.getFollowing().size();
+        user.getFollowing().remove(unFollowUser);
+        user.setFollowingCount(followingCount - 1);
+
+        // Save both users to update both sides of the relationship
+        userRepository.save(user);
+        userRepository.save(unFollowUser);
+
+        return "Unfollowed " + unFollowUser.getUsername();
+    }
+
+    @Transactional
+    public List<UserDto> findUserFollowers(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new EntityNotFoundException("User is not found with username: " + username));
         return userRepository.findFollowersWithDetails(user.getId())
                 .orElseThrow(() -> new EntityNotFoundException("User is not found with Id: " + user.getId()))
                 .getFollowers()
@@ -84,9 +125,9 @@ public class UserService {
     }
 
     @Transactional
-    public List<UserDto> findUserFollowings(Authentication connectedUser) {
-        Objects.requireNonNull(connectedUser, "Connected user must not be null");
-        User user = (User) connectedUser.getPrincipal();
+    public List<UserDto> findUserFollowings(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new EntityNotFoundException("User is not found with username: " + username));
         return userRepository.findFollowingsWithDetails(user.getId())
                 .orElseThrow(() -> new EntityNotFoundException("User is not found with Id: " + user.getId()))
                 .getFollowing()
