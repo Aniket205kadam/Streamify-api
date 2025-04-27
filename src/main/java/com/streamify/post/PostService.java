@@ -458,4 +458,13 @@ public class PostService {
                 .last(posts.isLast())
                 .build();
     }
+
+    public List<PostResponse> findSuggestedPosts(Authentication connectedUser) {
+        User user = (User) connectedUser.getPrincipal();
+        List<Post> posts = postRepository.findSuggestedPosts(user.getId()).subList(0, 5);
+        return posts
+                .stream()
+                .map(postMapper::toPostResponse)
+                .toList();
+    }
 }

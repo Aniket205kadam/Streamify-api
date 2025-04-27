@@ -75,4 +75,11 @@ public interface PostRepository extends JpaRepository<Post, String> {
             WHERE post.isReel = true
             """)
     Page<Post> findAllReels(Pageable pageable);
+
+    @Query("""
+            SELECT post
+            FROM Post post
+            WHERE post.user.id != :userId
+            """)
+    List<Post> findSuggestedPosts(String userId);
 }

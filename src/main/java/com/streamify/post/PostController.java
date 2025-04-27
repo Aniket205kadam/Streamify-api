@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.List;
 
 @RestController
 @RequestMapping("posts")
@@ -239,6 +240,15 @@ public class PostController {
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(commentService.getAllCommentReplies(commentId, page, size));
+    }
+
+    @GetMapping("/suggested-posts")
+    public ResponseEntity<List<PostResponse>> suggestedPosts(
+            Authentication connectedUser
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(postService.findSuggestedPosts(connectedUser));
     }
 
     @GetMapping("/followings-posts")
