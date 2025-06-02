@@ -98,7 +98,6 @@ public class Mapper {
         } else {
             avtar = "data:image/" + getImageType(user.getProfilePictureUrl()) + ";base64," + Base64.getEncoder().encodeToString(FileUtils.readFileFromLocation(user.getProfilePictureUrl()));
         }
-        System.out.println("String image: " + avtar);
 
         return UserDto.builder()
                 .id(user.getId())

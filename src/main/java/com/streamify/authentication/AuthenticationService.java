@@ -174,10 +174,10 @@ public class AuthenticationService {
 
         token.setValidatedAt(LocalDateTime.now());
         tokenRepository.save(token);
-        AuthenticationRequest request = AuthenticationRequest.builder()
+       /* AuthenticationRequest request = AuthenticationRequest.builder()
                 .identifier(user.getUsername())
                 .password(user.getPassword())
-                .build();
+                .build();*/
         return user.getId();
     }
 
@@ -202,7 +202,7 @@ public class AuthenticationService {
         }
         claims.put("username", user.getUsername());
         if (request.isInternal()) {
-            Authentication authentication = authenticationManager.authenticate(
+                Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(user.getUsername(), request.getPassword())
             );
         } else {
